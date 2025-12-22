@@ -1,0 +1,8 @@
+import { contextBridge } from 'electron';
+
+// Expose protected methods that allow the renderer process to use
+// the ipcRenderer without exposing the entire object
+contextBridge.exposeInMainWorld('electron', {
+  // Disini kita bisa menambahkan API khusus jika nanti dibutuhkan
+  // Contoh: membaca file lokal, notifikasi native, dll.
+});

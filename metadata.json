@@ -1,0 +1,5 @@
+{
+  "name": "SiswaConnect - Lapor Guru",
+  "description": "Platform bagi siswa untuk melaporkan ketidakhadiran guru atau kelas kosong secara real-time, dilengkapi bukti foto untuk pemantauan kurikulum.",
+  "requestFramePermissions": []
+}
