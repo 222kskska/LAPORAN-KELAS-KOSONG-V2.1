@@ -1,156 +1,444 @@
-import React, { useState } from 'react';
-import { ShieldCheck, GraduationCap, ChevronRight, School, Instagram } from 'lucide-react';
-import StudentForm from './components/StudentForm';
-import AdminDashboard from './components/AdminDashboard';
-import Login from './components/Login';
-import { UserRole, AdminUser } from './types';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Animated,
+  Dimensions,
+  StatusBar,
+  Platform,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Animatable from 'react-native-animatable';
 
-const App: React.FC = () => {
-  const [viewState, setViewState] = useState<'HOME' | 'STUDENT' | 'PRE_AUTH_ADMIN' | 'ADMIN_DASHBOARD'>('HOME');
-  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+const { width, height } = Dimensions.get('window');
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setViewState('HOME');
+interface Report {
+  id: string;
+  className: string;
+  time: string;
+  date: string;
+  reason: string;
+}
+
+const App = () => {
+  const [className, setClassName] = useState('');
+  const [time, setTime] = useState('');
+  const [reason, setReason] = useState('');
+  const [reports, setReports] = useState<Report[]>([]);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(-100));
+
+  useEffect(() => {
+    // Entrance animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 20,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const handleSubmit = () => {
+    if (!className || !time || !reason) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const newReport: Report = {
+      id: Date.now().toString(),
+      className,
+      time,
+      date: new Date().toLocaleDateString('id-ID'),
+      reason,
+    };
+
+    setReports([newReport, ...reports]);
+    
+    // Clear form
+    setClassName('');
+    setTime('');
+    setReason('');
+
+    Alert.alert('Success', 'Report submitted successfully!');
   };
 
-  const handleAdminLoginSuccess = (user: AdminUser) => {
-    setCurrentUser(user);
-    setViewState('ADMIN_DASHBOARD');
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Delete Report',
+      'Are you sure you want to delete this report?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => setReports(reports.filter(report => report.id !== id)),
+        },
+      ]
+    );
   };
 
-  const CreatorFooter = () => (
-    <a 
-      href="https://www.instagram.com/arifwbo/" 
-      target="_blank" 
-      rel="noreferrer"
-      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-pink-600 transition-colors mt-2 group"
-    >
-      <span>Created by</span>
-      <span className="font-bold group-hover:underline">ArifWbo</span>
-      <Instagram className="w-3 h-3" />
-    </a>
-  );
-
-  if (viewState === 'HOME') {
-    return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-6 font-sans relative overflow-hidden">
-        {/* Background Decorative Elements */}
-        <div className="absolute top-[-10%] right-[-5%] w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[-10%] left-[-5%] w-72 h-72 bg-blue-400/10 rounded-full blur-3xl"></div>
-
-        <div className="w-full max-w-lg z-10 animate-fade-in-up">
-          <div className="text-center mb-10">
-            <div className="w-16 h-16 bg-white rounded-2xl shadow-float flex items-center justify-center mx-auto mb-6 transform rotate-3 transition-transform hover:rotate-6">
-              <School className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-              Siswa<span className="text-primary">Connect</span>
-            </h1>
-            <p className="text-slate-500 text-lg max-w-xs mx-auto leading-relaxed">
-              Sistem Pelaporan Kegiatan Belajar Mengajar & Ketidakhadiran
-            </p>
-          </div>
-          
-          <div className="space-y-4">
-            <button
-              onClick={() => setViewState('STUDENT')}
-              className="group w-full bg-white hover:bg-white p-5 rounded-2xl shadow-soft border border-slate-100 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex items-center relative overflow-hidden"
-            >
-              <div className="absolute left-0 top-0 h-full w-1.5 bg-primary transition-all group-hover:w-2"></div>
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <div className="text-left ml-5 flex-1">
-                <span className="block text-lg font-bold text-slate-800">
-                  Akses Siswa
-                </span>
-                <span className="block text-sm text-slate-500 mt-0.5">
-                  Lapor kelas kosong atau guru tidak hadir
-                </span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors" />
-            </button>
-
-            <button
-              onClick={() => setViewState('PRE_AUTH_ADMIN')}
-              className="group w-full bg-white hover:bg-white p-5 rounded-2xl shadow-soft border border-slate-100 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex items-center relative overflow-hidden"
-            >
-              <div className="absolute left-0 top-0 h-full w-1.5 bg-slate-800 transition-all group-hover:w-2"></div>
-              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-700 group-hover:scale-110 transition-transform duration-300">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div className="text-left ml-5 flex-1">
-                <span className="block text-lg font-bold text-slate-800">
-                  Akses Admin
-                </span>
-                <span className="block text-sm text-slate-500 mt-0.5">
-                  Guru Piket & Administrator
-                </span>
-              </div>
-               <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-800 transition-colors" />
-            </button>
-          </div>
-
-          <div className="mt-12 text-center flex flex-col items-center">
-            <p className="text-xs font-medium text-slate-400">
-              &copy; 2025 SMP Negeri 4 Samarinda
-            </p>
-            <CreatorFooter />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (viewState === 'PRE_AUTH_ADMIN') {
-    return (
-      <Login 
-        onLoginSuccess={handleAdminLoginSuccess} 
-        onBack={() => setViewState('HOME')} 
-      />
-    );
-  }
-
-  // Layout Wrapper for Inner Pages
   return (
-    <div className="min-h-[100dvh] bg-slate-50 font-sans flex flex-col">
-      {/* Student View has a simple navbar, Admin handles its own layout */}
-      {viewState === 'STUDENT' && (
-        <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-          <div className="max-w-3xl mx-auto px-4 w-full">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center gap-2" onClick={() => setViewState('HOME')}>
-                <School className="w-6 h-6 text-primary" />
-                <span className="font-bold text-lg text-slate-800 tracking-tight cursor-pointer">
-                  SiswaConnect
-                </span>
-              </div>
-              <button
-                onClick={() => setViewState('HOME')}
-                className="text-sm font-semibold text-slate-500 hover:text-primary transition-colors py-2 px-3 rounded-lg hover:bg-slate-50"
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </nav>
-      )}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['#667eea', '#764ba2', '#f093fb']}
+        style={styles.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <Animatable.View 
+            animation="fadeInDown" 
+            duration={1000}
+            style={styles.header}
+          >
+            <Text style={styles.headerTitle}>📚 Laporan Kelas Kosong</Text>
+            <Text style={styles.headerSubtitle}>Version 2.0</Text>
+          </Animatable.View>
 
-      <main className="flex-1 w-full h-full flex flex-col">
-        {viewState === 'ADMIN_DASHBOARD' && currentUser ? (
-          <AdminDashboard user={currentUser} onLogout={handleLogout} />
-        ) : (
-          <div className="max-w-md mx-auto w-full p-4 md:pt-8 pb-10 flex-1 flex flex-col">
-             <StudentForm />
-             <div className="mt-auto pt-8 text-center flex justify-center">
-                <CreatorFooter />
-             </div>
-          </div>
-        )}
-      </main>
-    </div>
+          {/* Form Card */}
+          <Animated.View 
+            style={[
+              styles.card,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']}
+              style={styles.cardGradient}
+            >
+              <Text style={styles.cardTitle}>Submit New Report</Text>
+
+              {/* Class Name Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Class Name</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., XII RPL 1"
+                    placeholderTextColor="#999"
+                    value={className}
+                    onChangeText={setClassName}
+                  />
+                </View>
+              </View>
+
+              {/* Time Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Time</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., 08:00 - 09:30"
+                    placeholderTextColor="#999"
+                    value={time}
+                    onChangeText={setTime}
+                  />
+                </View>
+              </View>
+
+              {/* Reason Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Reason</Text>
+                <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Enter reason for empty classroom..."
+                    placeholderTextColor="#999"
+                    value={reason}
+                    onChangeText={setReason}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                </View>
+              </View>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                onPress={handleSubmit}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#667eea', '#764ba2']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.submitButton}
+                >
+                  <Text style={styles.submitButtonText}>Submit Report</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
+          </Animated.View>
+
+          {/* Reports List */}
+          {reports.length > 0 && (
+            <Animatable.View 
+              animation="fadeInUp" 
+              duration={800}
+              style={styles.reportsSection}
+            >
+              <Text style={styles.reportsTitle}>Recent Reports</Text>
+              {reports.map((report, index) => (
+                <Animatable.View
+                  key={report.id}
+                  animation="fadeInUp"
+                  delay={index * 100}
+                  style={styles.reportCard}
+                >
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']}
+                    style={styles.reportCardGradient}
+                  >
+                    <View style={styles.reportHeader}>
+                      <View>
+                        <Text style={styles.reportClassName}>{report.className}</Text>
+                        <Text style={styles.reportDate}>📅 {report.date}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleDelete(report.id)}
+                        style={styles.deleteButton}
+                      >
+                        <Text style={styles.deleteButtonText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.reportDetails}>
+                      <Text style={styles.reportTime}>⏰ {report.time}</Text>
+                      <Text style={styles.reportReason}>💬 {report.reason}</Text>
+                    </View>
+                  </LinearGradient>
+                </Animatable.View>
+              ))}
+            </Animatable.View>
+          )}
+
+          {/* Empty State */}
+          {reports.length === 0 && (
+            <Animatable.View 
+              animation="pulse" 
+              iterationCount="infinite"
+              duration={2000}
+              style={styles.emptyState}
+            >
+              <Text style={styles.emptyStateText}>📝</Text>
+              <Text style={styles.emptyStateTitle}>No Reports Yet</Text>
+              <Text style={styles.emptyStateSubtitle}>
+                Submit your first empty classroom report above
+              </Text>
+            </Animatable.View>
+          )}
+        </ScrollView>
+      </LinearGradient>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 5,
+    fontWeight: '600',
+  },
+  card: {
+    borderRadius: 20,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  cardGradient: {
+    borderRadius: 20,
+    padding: 25,
+  },
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#667eea',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  input: {
+    padding: 15,
+    fontSize: 16,
+    color: '#333',
+  },
+  textAreaWrapper: {
+    minHeight: 100,
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  reportsSection: {
+    marginTop: 10,
+  },
+  reportsTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 15,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  reportCard: {
+    borderRadius: 16,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  reportCardGradient: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  reportClassName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#667eea',
+    marginBottom: 5,
+  },
+  reportDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,0,0,0.1)',
+  },
+  deleteButtonText: {
+    fontSize: 20,
+  },
+  reportDetails: {
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingTop: 12,
+  },
+  reportTime: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  reportReason: {
+    fontSize: 15,
+    color: '#666',
+    lineHeight: 22,
+  },
+  emptyState: {
+    alignItems: 'center',
+    marginTop: 50,
+    padding: 30,
+  },
+  emptyStateText: {
+    fontSize: 64,
+    marginBottom: 15,
+  },
+  emptyStateTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  emptyStateSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+  },
+});
 
 export default App;
