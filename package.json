@@ -5,14 +5,14 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "author": "ArifWbo",
-  "description": "Aplikasi Pelaporan KBM SiswaConnect",
+  "description": "Aplikasi Pelaporan KBM SiswaConnect - Port 1991",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 1991",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vite preview --port 1991",
     "dev:electron": "concurrently -k \"npm run dev\" \"npm run electron:start\"",
-    "electron:start": "wait-on tcp:5173 && electron .",
+    "electron:start": "wait-on tcp:1991 && electron .",
     "build:electron": "tsc -b && vite build && tsc -p electron/tsconfig.json && electron-builder",
     "start:server": "node server.js"
   },
@@ -48,16 +48,29 @@
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*",
-      "node_modules/express/**/*"
+      "dist-electron/**/*"
+    ],
+    "asarUnpack": [
+      "dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist",
+        "to": "dist"
+      }
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "SiswaConnect"
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SiswaConnect",
+      "runAfterFinish": true
     }
   }
 }
