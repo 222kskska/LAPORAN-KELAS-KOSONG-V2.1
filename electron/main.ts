@@ -1,42 +1,50 @@
 import { app, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import express from 'express';
 
 // Untuk ES Module, kita perlu membuat __dirname sendiri
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 5173; // Port default Vite
-let serverProcess: any = null;
+const PORT = 1991; // Port custom seperti Dapodik
+let serverInstance: any = null;
 
-function startServer() {
-  return new Promise((resolve) => {
-    const isPackaged = app.isPackaged;
-    
-    if (!isPackaged) {
-      // Development mode: Vite sudah jalan dengan npm run dev
-      console.log('Development mode: Vite server should be running on port', PORT);
-      resolve(true);
-    } else {
-      // Production mode: Start static file server
-      try {
-        const express = require('express');
-        const serverApp = express();
-        
-        serverApp.use(express.static(path.join(__dirname, '../dist')));
-        
-        serverApp.get('*', (req: any, res: any) => {
-          res.sendFile(path.join(__dirname, '../dist/index.html'));
-        });
-        
-        serverProcess = serverApp.listen(PORT, () => {
-          console.log(`Server running on http://localhost:${PORT}`);
-          resolve(true);
-        });
-      } catch (error) {
-        console.error('Error starting server:', error);
-        resolve(false);
-      }
+function startEmbeddedServer() {
+  return new Promise((resolve, reject) => {
+    try {
+      const server = express();
+      const isPackaged = app.isPackaged;
+      
+      // Tentukan folder dist
+      const distPath = isPackaged 
+        ? path.join(process.resourcesPath, 'dist')
+        : path.join(__dirname, '../dist');
+      
+      console.log('📁 Serving from:', distPath);
+      
+      // Serve static files
+      server.use(express.static(distPath));
+      
+      // Handle React routing
+      server.get('*', (req: any, res: any) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+      
+      // Start server
+      serverInstance = server.listen(PORT, () => {
+        console.log(`✅ Server started on http://localhost:${PORT}`);
+        resolve(true);
+      });
+      
+      serverInstance.on('error', (err: any) => {
+        console.error('❌ Server error:', err);
+        reject(err);
+      });
+      
+    } catch (error) {
+      console.error('❌ Failed to start server:', error);
+      reject(error);
     }
   });
 }
@@ -45,27 +53,30 @@ async function openInBrowser() {
   const url = `http://localhost:${PORT}`;
   
   // Tunggu sebentar agar server siap
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // Buka di browser default (Chrome jika default browser adalah Chrome)
-  shell.openExternal(url);
+  // Buka di browser default
+  await shell.openExternal(url);
   
-  console.log(`\n${'='.repeat(60)}`);
+  console.log(`\n${'='.repeat(70)}`);
   console.log(`🚀 SiswaConnect berhasil dijalankan!`);
   console.log(`📡 Server berjalan di: ${url}`);
   console.log(`🌐 Browser akan terbuka otomatis`);
-  console.log(`\n💡 Tips:`);
-  console.log(`   - Cek port di address bar: localhost:${PORT}`);
-  console.log(`   - Tutup aplikasi ini untuk stop server`);
-  console.log(`${'='.repeat(60)}\n`);
+  console.log(`\n💡 Informasi:`);
+  console.log(`   ✓ Port: ${PORT}`);
+  console.log(`   ✓ Akses lokal: http://localhost:${PORT}`);
+  console.log(`   ✓ Status: Running`);
+  console.log(`\n⚠️  Jangan tutup window ini - Server akan berhenti!`);
+  console.log(`${'='.repeat(70)}\n`);
 }
 
 app.whenReady().then(async () => {
   try {
-    await startServer();
+    console.log('🔄 Starting SiswaConnect...');
+    await startEmbeddedServer();
     await openInBrowser();
   } catch (error) {
-    console.error('Error starting application:', error);
+    console.error('❌ Error starting application:', error);
     app.quit();
   }
 });
@@ -74,27 +85,25 @@ app.whenReady().then(async () => {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
+  console.log('⚠️  Aplikasi sudah berjalan!');
   app.quit();
 } else {
   app.on('second-instance', () => {
     // Jika user coba buka lagi, buka tab baru di browser
+    console.log('📱 Membuka tab baru...');
     shell.openExternal(`http://localhost:${PORT}`);
   });
 }
 
-// Quit when all windows are closed
-app.on('window-all-closed', () => {
-  // Tidak ada window, tapi tetap jalan sampai user quit dari console
-});
-
-// macOS specific
-app.on('activate', () => {
-  shell.openExternal(`http://localhost:${PORT}`);
-});
-
-// Cleanup on exit
+// Handle app quit
 app.on('before-quit', () => {
-  if (serverProcess) {
-    serverProcess.close();
+  console.log('🛑 Stopping server...');
+  if (serverInstance) {
+    serverInstance.close();
   }
+});
+
+// Keep app running (no window mode)
+app.on('window-all-closed', () => {
+  // Don't quit - we're running as a background server
 });
