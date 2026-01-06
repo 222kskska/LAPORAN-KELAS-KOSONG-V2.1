@@ -251,7 +251,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
                 value={formData.keterangan}
                 onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
                 placeholder="Deskripsikan situasi kelas saat ini..."
-                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none font-medium min-h-[120px] resize-y"
+                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none resize-none min-h-[120px]"
               ></textarea>
             </div>
           </div>
