@@ -3,7 +3,11 @@ import { mockService } from '../services/mockService';
 import { Teacher, FormData, ClassRoom } from '../types';
 import { CheckCircle2, AlertCircle, Search, ChevronDown, User, Clock, FileText, Camera, Upload, School } from 'lucide-react';
 
-const StudentForm: React.FC = () => {
+type StudentFormProps = {
+  onBack: () => void;
+};
+
+const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -138,11 +142,11 @@ const StudentForm: React.FC = () => {
                 value={inputCode}
                 onChange={handleCodeChange}
                 placeholder="Masukkan Kode Kelas"
-                className="w-full pl-4 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none font-mono text-lg tracking-wider uppercase"
+                className="w-full pl-4 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none font-medium"
               />
             </div>
             {/* Class Indicator */}
-            <div className={`mt-2 p-4 rounded-xl border flex items-center justify-between transition-all duration-300 ${formData.kelas ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 border-slate-100'}`}>
+            <div className={`mt-2 p-4 rounded-xl border flex items-center justify-between transition-all duration-300 ${formData.kelas ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 {formData.kelas ? (
                   <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center">
@@ -184,7 +188,7 @@ const StudentForm: React.FC = () => {
                 onFocus={() => setShowTeacherList(true)}
                 onBlur={() => setTimeout(() => setShowTeacherList(false), 200)}
                 placeholder="Cari nama guru..."
-                className="w-full pl-12 pr-10 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
+                className="w-full pl-12 pr-10 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none font-medium"
                 autoComplete="off"
               />
               <ChevronDown className="absolute right-4 top-4 w-5 h-5 text-slate-400" />
@@ -247,7 +251,7 @@ const StudentForm: React.FC = () => {
                 value={formData.keterangan}
                 onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
                 placeholder="Deskripsikan situasi kelas saat ini..."
-                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none min-h-[100px] resize-none"
+                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none font-medium min-h-[120px] resize-y"
               ></textarea>
             </div>
           </div>
@@ -295,7 +299,7 @@ const StudentForm: React.FC = () => {
           <button
             type="submit"
             disabled={submitting || !formData.kelas || !formData.guru}
-            className="w-full py-4 px-6 rounded-xl bg-primary text-white font-bold text-lg shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2 mt-4"
+            className="w-full py-4 px-6 rounded-xl bg-primary text-white font-bold text-lg shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:bg-primary-dark active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>Memproses <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span></>
