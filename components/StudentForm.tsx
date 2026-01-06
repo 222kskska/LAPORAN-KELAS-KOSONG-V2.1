@@ -34,6 +34,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   // Load teachers and classes on mount
   useEffect(() => {
@@ -92,13 +93,16 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clear any previous error
+    setErrorMessage('');
+    
     if (!detectedClass) {
-      alert('Kode kelas tidak valid. Silakan masukkan kode yang benar.');
+      setErrorMessage('Kode kelas tidak valid. Silakan masukkan kode yang benar.');
       return;
     }
 
     if (!selectedTeacher) {
-      alert('Silakan pilih nama guru.');
+      setErrorMessage('Silakan pilih nama guru.');
       return;
     }
 
@@ -119,7 +123,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
       }
     } catch (error) {
       console.error('Error submitting report:', error);
-      alert('Gagal mengirim laporan. Silakan coba lagi.');
+      setErrorMessage('Gagal mengirim laporan. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -135,6 +139,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
     setKeterangan('');
     setFoto(null);
     setFotoPreview(null);
+    setErrorMessage('');
     // Reset datetime
     const now = new Date();
     const formatted = now.toISOString().slice(0, 16);
@@ -167,6 +172,14 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 animate-fade-in">
+                <X className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">{errorMessage}</span>
+              </div>
+            )}
+
             {/* Step 1: Kode Kelas */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -304,6 +317,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
                   onChange={handlePhotoChange}
                   className="hidden"
                   id="photo-upload"
+                  aria-label="Upload foto bukti"
                 />
                 <label htmlFor="photo-upload" className="cursor-pointer">
                   {fotoPreview ? (
@@ -370,37 +384,6 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
           </div>
         </div>
       )}
-
-      {/* Add custom animations in the style tag */}
-      <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-        
-        .animate-scale-in {
-          animation: scale-in 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };
