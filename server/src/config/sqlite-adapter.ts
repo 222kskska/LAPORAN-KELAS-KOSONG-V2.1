@@ -115,7 +115,7 @@ export class SQLiteAdapter implements DatabaseAdapter {
    */
   private async initializeSchema(): Promise<void> {
     const schemaPath = path.join(__dirname, '../../../database/schema-sqlite.sql');
-    const seedPath = path.join(__dirname, '../../../database/seed.sql');
+    const seedPath = path.join(__dirname, '../../../database/seed-sqlite.sql');
     
     if (fs.existsSync(schemaPath)) {
       const schema = fs.readFileSync(schemaPath, 'utf8');
@@ -126,11 +126,15 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
     
     if (fs.existsSync(seedPath)) {
-      const seed = fs.readFileSync(seedPath, 'utf8');
-      // Convert MySQL-specific syntax in seed data
-      const sqliteSeed = this.convertToSQLite(seed);
-      this.db!.exec(sqliteSeed);
-      console.log('✅ Seed data loaded');
+      try {
+        const seed = fs.readFileSync(seedPath, 'utf8');
+        this.db!.exec(seed);
+        console.log('✅ Seed data loaded');
+      } catch (error) {
+        console.warn('⚠️  Seed data loading failed:', error);
+      }
+    } else {
+      console.log('ℹ️  No seed data file found (this is okay for production)');
     }
   }
 

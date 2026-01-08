@@ -82,7 +82,7 @@ async function startServer(config: AppConfig): Promise<boolean> {
     console.log('Node path:', nodePath);
     
     // Set environment variables
-    const env = {
+    const env: NodeJS.ProcessEnv = {
       ...process.env,
       PORT: config.serverPort.toString(),
       DB_TYPE: config.dbType,
