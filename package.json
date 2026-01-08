@@ -3,7 +3,7 @@
   "private": true,
   "version": "3.0.0",
   "type": "module",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/main-hybrid.js",
   "author": "ArifWbo",
   "description": "Aplikasi Pelaporan KBM SiswaConnect Multi-User - Port 1991",
   "scripts": {
@@ -19,7 +19,8 @@
     "dev:server": "cd server && npm run dev",
     "build:server": "cd server && npm run build",
     "start:backend": "cd server && npm start",
-    "build:all": "npm run build && npm run build:server"
+    "build:all": "npm run build && npm run build:server",
+    "dist": "electron-builder"
   },
   "dependencies": {
     "axios": "^1.13.2",
@@ -60,7 +61,7 @@
       "dist-electron/**/*",
       "server/dist/**/*",
       "database/**/*",
-      "electron/**/*"
+      "electron/setup-wizard.html"
     ],
     "asarUnpack": [
       "dist/**/*",

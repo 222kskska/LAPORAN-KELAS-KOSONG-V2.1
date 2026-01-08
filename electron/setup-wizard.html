@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiswaConnect Setup Wizard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .wizard {
+      background: white;
+      border-radius: 12px;
+      padding: 35px;
+      max-width: 550px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+    
+    .step {
+      display: none;
+    }
+    
+    .step.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .mode-option {
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .mode-option:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+    
+    .mode-option.selected {
+      border-color: #667eea;
+      background: #f0f4ff;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    
+    .mode-option.selected::before {
+      content: '✓';
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 24px;
+      height: 24px;
+      background: #667eea;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    
+    .mode-option h3 {
+      margin: 0 0 10px 0;
+      color: #667eea;
+      font-size: 18px;
+    }
+    
+    .mode-option p {
+      margin: 5px 0;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    
+    .mode-option strong {
+      color: #333;
+    }
+    
+    .btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    
+    .btn:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn-secondary {
+      background: #999;
+      margin-right: 10px;
+    }
+    
+    .btn-secondary:hover {
+      background: #777;
+    }
+    
+    .form-group {
+      margin: 15px 0;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    
+    .info-box p {
+      margin: 5px 0;
+      font-size: 13px;
+      color: #1565c0;
+    }
+    
+    .info-box strong {
+      color: #0d47a1;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 25px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wizard">
+    <!-- Step 1: Choose Mode -->
+    <div class="step active" id="step1">
+      <h1>🎯 Pilih Mode Instalasi</h1>
+      <p class="subtitle">Pilih mode yang sesuai dengan kebutuhan Anda</p>
+      
+      <div class="mode-option" data-mode="standalone">
+        <h3>📱 Mode Standalone (Mudah)</h3>
+        <p><strong>Untuk:</strong> 1 PC saja, tidak perlu jaringan</p>
+        <p><strong>Cocok untuk:</strong> Sekolah kecil, operator tunggal</p>
+        <p><strong>Kelebihan:</strong> Instalasi mudah, tanpa konfigurasi database</p>
+      </div>
+      
+      <div class="mode-option" data-mode="network">
+        <h3>🌐 Mode Network (Multi-User)</h3>
+        <p><strong>Untuk:</strong> Banyak PC dalam jaringan LAN</p>
+        <p><strong>Cocok untuk:</strong> Sekolah menengah/besar, multi-operator</p>
+        <p><strong>Kelebihan:</strong> Banyak user bersamaan, data terpusat</p>
+      </div>
+      
+      <button class="btn" id="btn-next-1">Lanjut →</button>
+    </div>
+    
+    <!-- Step 2: Standalone Config -->
+    <div class="step" id="step2-standalone">
+      <h1>📱 Konfigurasi Standalone</h1>
+      <p class="subtitle">Pengaturan untuk mode standalone</p>
+      
+      <div class="info-box">
+        <p><strong>ℹ️ Informasi:</strong></p>
+        <p>• Data disimpan di komputer ini saja (SQLite)</p>
+        <p>• Tidak perlu koneksi jaringan atau database server</p>
+        <p>• Instalasi otomatis, siap digunakan</p>
+      </div>
+      
+      <div class="form-group">
+        <label>Port Server (default: 1991)</label>
+        <input type="number" id="port-standalone" value="1991" min="1000" max="65535">
+      </div>
+      
+      <div class="button-group">
+        <button class="btn btn-secondary" id="btn-back-standalone">← Kembali</button>
+        <button class="btn" id="btn-finish-standalone">Selesai ✓</button>
+      </div>
+    </div>
+    
+    <!-- Step 2: Network Config -->
+    <div class="step" id="step2-network">
+      <h1>🌐 Konfigurasi Network</h1>
+      <p class="subtitle">Pengaturan database MySQL untuk mode network</p>
+      
+      <div class="info-box">
+        <p><strong>⚠️ Persyaratan:</strong></p>
+        <p>• MySQL Server harus sudah terinstall dan berjalan</p>
+        <p>• Atau gunakan XAMPP/Laragon yang sudah include MySQL</p>
+        <p>• Database 'siswa_connect' akan dibuat otomatis</p>
+      </div>
+      
+      <div class="form-group">
+        <label>Host MySQL</label>
+        <input type="text" id="db-host" value="localhost" placeholder="localhost atau IP server">
+      </div>
+      
+      <div class="form-group">
+        <label>Port MySQL</label>
+        <input type="number" id="db-port" value="3306" min="1000" max="65535">
+      </div>
+      
+      <div class="form-group">
+        <label>Username MySQL</label>
+        <input type="text" id="db-user" value="root">
+      </div>
+      
+      <div class="form-group">
+        <label>Password MySQL</label>
+        <input type="password" id="db-password" placeholder="Kosongkan jika tidak ada password">
+      </div>
+      
+      <div class="form-group">
+        <label>Nama Database</label>
+        <input type="text" id="db-name" value="siswa_connect">
+      </div>
+      
+      <div class="form-group">
+        <label>Port Server</label>
+        <input type="number" id="port-network" value="1991" min="1000" max="65535">
+      </div>
+      
+      <div class="button-group">
+        <button class="btn btn-secondary" id="btn-back-network">← Kembali</button>
+        <button class="btn" id="btn-finish-network">Selesai ✓</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const { ipcRenderer } = require('electron');
+    
+    let selectedMode = null;
+    
+    // Mode selection
+    document.querySelectorAll('.mode-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.mode-option').forEach(o => o.classList.remove('selected'));
+        option.classList.add('selected');
+        selectedMode = option.dataset.mode;
+      });
+    });
+    
+    // Step 1 -> Step 2
+    document.getElementById('btn-next-1').addEventListener('click', () => {
+      if (!selectedMode) {
+        alert('⚠️ Pilih mode instalasi terlebih dahulu');
+        return;
+      }
+      
+      document.getElementById('step1').classList.remove('active');
+      if (selectedMode === 'standalone') {
+        document.getElementById('step2-standalone').classList.add('active');
+      } else {
+        document.getElementById('step2-network').classList.add('active');
+      }
+    });
+    
+    // Back buttons
+    document.getElementById('btn-back-standalone').addEventListener('click', () => {
+      document.getElementById('step2-standalone').classList.remove('active');
+      document.getElementById('step1').classList.add('active');
+    });
+    
+    document.getElementById('btn-back-network').addEventListener('click', () => {
+      document.getElementById('step2-network').classList.remove('active');
+      document.getElementById('step1').classList.add('active');
+    });
+    
+    // Finish standalone
+    document.getElementById('btn-finish-standalone').addEventListener('click', () => {
+      const config = {
+        installMode: 'standalone',
+        serverPort: parseInt(document.getElementById('port-standalone').value),
+        dbType: 'sqlite'
+      };
+      
+      console.log('Sending config:', config);
+      ipcRenderer.send('setup-complete', config);
+    });
+    
+    // Finish network
+    document.getElementById('btn-finish-network').addEventListener('click', () => {
+      const host = document.getElementById('db-host').value;
+      const port = parseInt(document.getElementById('db-port').value);
+      const user = document.getElementById('db-user').value;
+      const password = document.getElementById('db-password').value;
+      const database = document.getElementById('db-name').value;
+      
+      if (!host || !user || !database) {
+        alert('⚠️ Host, Username, dan Nama Database harus diisi');
+        return;
+      }
+      
+      const config = {
+        installMode: 'network',
+        serverPort: parseInt(document.getElementById('port-network').value),
+        dbType: 'mysql',
+        dbConfig: {
+          host: host,
+          port: port,
+          user: user,
+          password: password,
+          database: database
+        }
+      };
+      
+      console.log('Sending config:', config);
+      ipcRenderer.send('setup-complete', config);
+    });
+  </script>
+</body>
+</html>
