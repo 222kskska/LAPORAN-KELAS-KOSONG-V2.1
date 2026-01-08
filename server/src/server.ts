@@ -4,9 +4,10 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
-import { pool, testConnection, query } from './config/database';
+import { pool, testConnection, query, dbAdapter } from './config/database';
 import { authenticateToken, generateToken, AuthUser } from './middleware/auth';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { MySQLAdapter } from './config/mysql-adapter';
 
 dotenv.config();
 
@@ -721,69 +722,114 @@ app.get('/api/teacher-leaves', authenticateToken, async (req: Request, res: Resp
 
 // Create teacher leave with assignments (transaction)
 app.post('/api/teacher-leaves', authenticateToken, async (req: Request, res: Response) => {
-  const connection = await pool.getConnection();
-  
   try {
-    await connection.beginTransaction();
-
     const { guru_id, tanggal_mulai, tanggal_selesai, jenis_izin, alasan, nomor_surat, file_surat_base64, assignments } = req.body;
 
     if (!guru_id || !tanggal_mulai || !tanggal_selesai || !jenis_izin || !alasan) {
-      await connection.rollback();
       return res.status(400).json({ 
         success: false, 
         message: 'Required fields missing' 
       });
     }
 
-    // Insert leave
-    const leaveSql = `
-      INSERT INTO teacher_leaves (guru_id, tanggal_mulai, tanggal_selesai, jenis_izin, alasan, nomor_surat, file_surat_base64)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-    const [leaveResult] = await connection.execute<ResultSetHeader>(
-      leaveSql, 
-      [guru_id, tanggal_mulai, tanggal_selesai, jenis_izin, alasan, nomor_surat || null, file_surat_base64 || null]
-    );
-
-    const leaveId = leaveResult.insertId;
-
-    // Insert assignments
-    if (assignments && Array.isArray(assignments) && assignments.length > 0) {
-      const assignSql = `
-        INSERT INTO class_assignments (leave_id, kelas_id, nama_kelas, jam_pelajaran, mata_pelajaran, guru_pengganti, guru_pengganti_id, tugas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
+    // Use transaction for both MySQL and SQLite
+    let leaveId: number;
+    
+    // For MySQL, use the pool connection method
+    if (pool && dbAdapter instanceof MySQLAdapter) {
+      const connection = await pool.getConnection();
       
-      for (const assign of assignments) {
-        await connection.execute(assignSql, [
-          leaveId,
-          assign.kelas_id || null,
-          assign.nama_kelas,
-          assign.jam_pelajaran,
-          assign.mata_pelajaran,
-          assign.guru_pengganti,
-          assign.guru_pengganti_id || null,
-          assign.tugas
-        ]);
+      try {
+        await connection.beginTransaction();
+
+        // Insert leave
+        const leaveSql = `
+          INSERT INTO teacher_leaves (guru_id, tanggal_mulai, tanggal_selesai, jenis_izin, alasan, nomor_surat, file_surat_base64)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+        const [leaveResult] = await connection.execute<ResultSetHeader>(
+          leaveSql, 
+          [guru_id, tanggal_mulai, tanggal_selesai, jenis_izin, alasan, nomor_surat || null, file_surat_base64 || null]
+        );
+
+        leaveId = leaveResult.insertId;
+
+        // Insert assignments
+        if (assignments && Array.isArray(assignments) && assignments.length > 0) {
+          const assignSql = `
+            INSERT INTO class_assignments (leave_id, kelas_id, nama_kelas, jam_pelajaran, mata_pelajaran, guru_pengganti, guru_pengganti_id, tugas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          
+          for (const assign of assignments) {
+            await connection.execute(assignSql, [
+              leaveId,
+              assign.kelas_id || null,
+              assign.nama_kelas,
+              assign.jam_pelajaran,
+              assign.mata_pelajaran,
+              assign.guru_pengganti,
+              assign.guru_pengganti_id || null,
+              assign.tugas
+            ]);
+          }
+        }
+
+        await connection.commit();
+        connection.release();
+      } catch (error) {
+        await connection.rollback();
+        connection.release();
+        throw error;
       }
+    } else {
+      // For SQLite, use the adapter's transaction method
+      await dbAdapter.transaction(async (adapter) => {
+        // Insert leave
+        const leaveSql = `
+          INSERT INTO teacher_leaves (guru_id, tanggal_mulai, tanggal_selesai, jenis_izin, alasan, nomor_surat, file_surat_base64)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+        const leaveResult = await adapter.execute(
+          leaveSql, 
+          [guru_id, tanggal_mulai, tanggal_selesai, jenis_izin, alasan, nomor_surat || null, file_surat_base64 || null]
+        );
+
+        leaveId = leaveResult.insertId;
+
+        // Insert assignments
+        if (assignments && Array.isArray(assignments) && assignments.length > 0) {
+          const assignSql = `
+            INSERT INTO class_assignments (leave_id, kelas_id, nama_kelas, jam_pelajaran, mata_pelajaran, guru_pengganti, guru_pengganti_id, tugas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          
+          for (const assign of assignments) {
+            await adapter.execute(assignSql, [
+              leaveId,
+              assign.kelas_id || null,
+              assign.nama_kelas,
+              assign.jam_pelajaran,
+              assign.mata_pelajaran,
+              assign.guru_pengganti,
+              assign.guru_pengganti_id || null,
+              assign.tugas
+            ]);
+          }
+        }
+      });
     }
 
-    await connection.commit();
-
-    await logActivity(req.user?.id || null, req.user?.username || null, 'CREATE_TEACHER_LEAVE', 'teacher_leave', leaveId.toString(), `Created teacher leave with ${assignments?.length || 0} assignments`, req);
+    await logActivity(req.user?.id || null, req.user?.username || null, 'CREATE_TEACHER_LEAVE', 'teacher_leave', leaveId!.toString(), `Created teacher leave with ${assignments?.length || 0} assignments`, req);
 
     res.status(201).json({ 
       success: true, 
       message: 'Teacher leave created successfully',
-      id: leaveId
+      id: leaveId!
     });
   } catch (error) {
-    await connection.rollback();
     console.error('Create teacher leave error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
-  } finally {
-    connection.release();
   }
 });
 
@@ -887,6 +933,8 @@ async function startServer() {
       process.exit(1);
     }
 
+    const dbType = process.env.DB_TYPE || 'sqlite';
+
     // Start server
     app.listen(PORT, () => {
       console.log('');
@@ -896,6 +944,7 @@ async function startServer() {
       console.log('');
       console.log(`📍 Server running on: http://localhost:${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📊 Database: ${dbType.toUpperCase()}`);
       console.log(`🔗 CORS enabled for: ${CLIENT_URL}`);
       console.log('');
       console.log('📋 Available endpoints:');
@@ -919,13 +968,13 @@ async function startServer() {
 // Handle graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
-  await pool.end();
+  await dbAdapter.disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT signal received: closing HTTP server');
-  await pool.end();
+  await dbAdapter.disconnect();
   process.exit(0);
 });
 
