@@ -1,24 +1,29 @@
 import React, { useState } from 'react';
-import { ShieldCheck, GraduationCap, ChevronRight, School, Instagram } from 'lucide-react';
+import { ShieldCheck, GraduationCap, ChevronRight, School, Instagram, UserCircle } from 'lucide-react';
 import StudentForm from './components/StudentForm';
 import AdminDashboard from './components/AdminDashboard';
+import TeacherDashboard from './components/TeacherDashboard';
 import Login from './components/Login';
-import { AdminUser } from './types';
+import { AdminUser, UserRole } from './types';
 
 const App: React.FC = () => {
-  const [viewState, setViewState] = useState<'HOME' | 'STUDENT' | 'PRE_AUTH_ADMIN' | 'ADMIN_DASHBOARD'>('HOME');
+  const [viewState, setViewState] = useState<'HOME' | 'STUDENT' | 'PRE_AUTH_ADMIN' | 'PRE_AUTH_TEACHER' | 'ADMIN_DASHBOARD' | 'TEACHER_DASHBOARD'>('HOME');
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
 
-  // Pastikan handleLogout, handleAdminLoginSuccess selalu sesuai kontrak
+  // Pastikan handleLogout, handleLoginSuccess selalu sesuai kontrak
   const handleLogout = () => {
     setCurrentUser(null);
     setViewState('HOME');
   };
 
-  // Pastikan user selalu bertipe AdminUser
-  const handleAdminLoginSuccess = (user: AdminUser) => {
+  // Handle login success with role-based routing
+  const handleLoginSuccess = (user: AdminUser) => {
     setCurrentUser(user);
-    setViewState('ADMIN_DASHBOARD');
+    if (user.role === UserRole.TEACHER) {
+      setViewState('TEACHER_DASHBOARD');
+    } else {
+      setViewState('ADMIN_DASHBOARD');
+    }
   };
 
   // Footer
@@ -111,6 +116,28 @@ const App: React.FC = () => {
                 <ChevronRight className="w-6 h-6 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
               </div>
             </button>
+            {/* Teacher Access */}
+            <button
+              onClick={() => setViewState('PRE_AUTH_TEACHER')}
+              className="group w-full bg-white hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 p-6 rounded-2xl shadow-lg border-2 border-transparent hover:border-green-200 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                    <UserCircle className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-lg font-bold text-slate-800 mb-1">
+                      Akses Guru
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      Form Izin & Penugasan Kelas
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-6 h-6 text-slate-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
+              </div>
+            </button>
           </div>
           <CreatorFooter />
         </div>
@@ -133,7 +160,20 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
         <Login 
           onBack={() => setViewState('HOME')} 
-          onLoginSuccess={handleAdminLoginSuccess}
+          onLoginSuccess={handleLoginSuccess}
+          loginType="ADMIN"
+        />
+      </div>
+    );
+  }
+
+  if (viewState === 'PRE_AUTH_TEACHER') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+        <Login 
+          onBack={() => setViewState('HOME')} 
+          onLoginSuccess={handleLoginSuccess}
+          loginType="TEACHER"
         />
       </div>
     );
@@ -144,6 +184,17 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <AdminDashboard 
+          user={currentUser} 
+          onLogout={handleLogout} 
+        />
+      </div>
+    );
+  }
+
+  if (viewState === 'TEACHER_DASHBOARD' && currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
+        <TeacherDashboard 
           user={currentUser} 
           onLogout={handleLogout} 
         />
