@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LogOut, Plus, FileText, Clock, CheckCircle, XCircle, AlertCircle, Calendar, User, BookOpen, Hash, Eye, X } from 'lucide-react';
 import { AdminUser, TeacherLeave, LeaveType } from '../types';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 import TeacherLeaveForm from './TeacherLeaveForm';
 
 interface TeacherDashboardProps {
@@ -21,7 +21,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user, onLogout }) =
 
   const loadLeaves = async () => {
     setLoading(true);
-    const data = await mockService.getTeacherLeavesByGuruId(user.id);
+    const data = await apiService.getTeacherLeavesByGuruId(user.id);
     setLeaves(data);
     setLoading(false);
   };

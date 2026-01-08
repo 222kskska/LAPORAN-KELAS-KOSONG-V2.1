@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Upload, FileText, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { AdminUser, LeaveType, TeacherLeaveFormData, ClassRoom } from '../types';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 
 interface TeacherLeaveFormProps {
   teacher: AdminUser;
@@ -31,7 +31,7 @@ const TeacherLeaveForm: React.FC<TeacherLeaveFormProps> = ({ teacher, onClose, o
   }, []);
 
   const loadClasses = async () => {
-    const data = await mockService.getClasses();
+    const data = await apiService.getClasses();
     setClasses(data);
   };
 
@@ -139,7 +139,7 @@ const TeacherLeaveForm: React.FC<TeacherLeaveFormProps> = ({ teacher, onClose, o
         fileSurat: fileSurat || undefined
       };
       
-      await mockService.submitTeacherLeave(teacher.id, teacher, submitData);
+      await apiService.submitTeacherLeave(submitData);
       setSuccess(true);
       setTimeout(() => {
         onSuccess();

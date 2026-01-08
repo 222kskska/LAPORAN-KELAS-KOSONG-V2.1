@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, User, Eye, EyeOff, AlertCircle, ArrowLeft, School } from 'lucide-react';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 import { AdminUser } from '../types';
 
 interface LoginProps {
@@ -27,7 +27,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack, loginType = 'ADMI
     setError('');
 
     try {
-      const user = await mockService.login(username, password);
+      const user = await apiService.login(username, password);
       if (user) {
         // Validate role matches loginType
         if (loginType === 'TEACHER' && user.role !== 'TEACHER') {

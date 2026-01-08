@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { UserRole, AdminUser } from '../types';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 import { Trash2, Key, UserPlus, Shield, User, ShieldAlert, X } from 'lucide-react';
 
 interface Props {
@@ -23,14 +23,14 @@ const AdminUserManagement: React.FC<Props> = ({ currentUser }) => {
 
   const loadUsers = async () => {
     setLoading(true);
-    const data = await mockService.getAdminUsers();
+    const data = await apiService.getAdminUsers();
     setUsers(data);
     setLoading(false);
   };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await mockService.addAdminUser(newUser);
+    const success = await apiService.addAdminUser(newUser);
     if (success) {
       setShowAddModal(false);
       setNewUser({ username: '', name: '', password: '', role: UserRole.OPERATOR });
@@ -42,7 +42,7 @@ const AdminUserManagement: React.FC<Props> = ({ currentUser }) => {
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
-      await mockService.deleteAdminUser(id);
+      await apiService.deleteAdminUser(id);
       loadUsers();
     }
   };
@@ -50,7 +50,7 @@ const AdminUserManagement: React.FC<Props> = ({ currentUser }) => {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (showPassModal) {
-      await mockService.updatePassword(showPassModal, newPassword);
+      await apiService.updatePassword(showPassModal, newPassword);
       setShowPassModal(null);
       setNewPassword('');
       alert('Password berhasil diubah.');
