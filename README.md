@@ -1,10 +1,39 @@
-# LAPORAN KELAS KOSONG V2 📚
+# LAPORAN KELAS KOSONG V3 📚
 
-A modern classroom attendance reporting system with dual modes: Web Application and Desktop Application. Built to streamline the process of reporting empty classrooms and managing student attendance efficiently.
+A modern classroom attendance reporting system with **Multi-User MySQL Architecture**. Built to streamline the process of reporting empty classrooms and managing student attendance efficiently with centralized database and real-time collaboration.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D%2016.0.0-brightgreen)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/react-%5E18.0.0-blue)](https://reactjs.org/)
+[![MySQL](https://img.shields.io/badge/mysql-5.7%2B-blue)](https://www.mysql.com/)
+
+## 🚀 Multi-User Architecture (v3.0)
+
+### What's New in V3?
+
+- **Multi-User Support**: Multiple users can access simultaneously from different devices
+- **Centralized Database**: MySQL database for data persistence and consistency
+- **RESTful API Backend**: Node.js + Express + TypeScript server
+- **JWT Authentication**: Secure token-based authentication
+- **Real-time Updates**: Data synchronization across all connected clients
+- **Production Ready**: Designed for school-wide deployment on LAN
+
+### Architecture Overview
+
+```
+┌─────────────┐     HTTP REST API      ┌──────────────┐      MySQL       ┌──────────┐
+│   Client    │ ──────────────────────> │    Server    │ ────────────────> │ Database │
+│  (Browser)  │ <────────────────────── │ (Node.js +   │ <──────────────── │ (MySQL)  │
+│  Port 1991  │      JSON Response      │   Express)   │      Result       │          │
+└─────────────┘                         └──────────────┘                   └──────────┘
+```
+
+### Use Cases
+
+- **School-wide Deployment**: Central server, multiple client access points
+- **Real-time Collaboration**: Teachers and operators work simultaneously
+- **Data Centralization**: All reports stored in one place
+- **Multi-device Access**: Access from any PC/laptop on school network
 
 ## 🌟 Features
 
@@ -39,65 +68,116 @@ A modern classroom attendance reporting system with dual modes: Web Application 
 
 ### Frontend
 - **React** ^18.0.0 - UI library
-- **React Router** - Navigation and routing
-- **Axios** - HTTP client
-- **Material-UI / Tailwind CSS** - UI components and styling
-- **Redux / Context API** - State management
-- **Chart.js / Recharts** - Data visualization
+- **TypeScript** - Type safety
+- **Axios** - HTTP client for API calls
+- **Tailwind CSS** - UI styling
+- **Recharts** - Data visualization
+- **Lucide React** - Icons
 
-### Desktop Application
-- **Electron** - Desktop framework
-- **Electron Builder** - Desktop app packaging
-- **Electron Store** - Local data persistence
+### Backend (NEW in v3.0)
+- **Node.js** ^16.0.0 - Runtime environment
+- **Express** ^4.18 - Web framework
+- **TypeScript** - Type safety
+- **MySQL2** - MySQL client with connection pooling
+- **bcrypt** - Password hashing
+- **jsonwebtoken** - JWT authentication
+- **Helmet** - Security headers
+- **Morgan** - HTTP request logging
 
-### Backend (if applicable)
-- **Node.js** - Runtime environment
-- **Express** - Web framework
-- **MongoDB / MySQL** - Database
-- **JWT** - Authentication
-- **Socket.io** - Real-time communication
+### Database (NEW in v3.0)
+- **MySQL** 5.7+ / **MariaDB** 10.3+ - Relational database
+- 8 normalized tables
+- Foreign key constraints
+- Optimized indexes
 
 ### Development Tools
-- **Vite / Create React App** - Build tool
+- **Vite** - Build tool and dev server
 - **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **Jest** - Testing framework
+- **ts-node** - TypeScript execution
+- **nodemon** - Auto-restart on changes
 
 ## 📦 Installation
 
-### Prerequisites
-- Node.js >= 16.0.0
-- npm >= 8.0.0 or yarn >= 1.22.0
-- Git
+### Prerequisites (v3.0)
+- **Node.js** >= 16.0.0
+- **npm** >= 8.0.0
+- **MySQL Server** 5.7+ or MariaDB 10.3+
+- **Git** (optional)
 
-### Web Mode Installation
+### Quick Start (Windows)
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/arifwbo/LAPORAN-KELAS-KOSONG-V2.git
-cd LAPORAN-KELAS-KOSONG-V2
+git clone https://github.com/222kskska/LAPORAN-KELAS-KOSONG-V2.1.git
+cd LAPORAN-KELAS-KOSONG-V2.1
 ```
 
-2. **Install dependencies**
+2. **Run Automated Installers**
+```cmd
+cd installer
+check-requirements.bat     # Verify prerequisites
+setup-database.bat         # Setup MySQL database
+setup-server.bat           # Setup backend server
+```
+
+3. **Start the Server**
+```cmd
+cd server
+npm start
+```
+
+4. **Access the Application**
+Open browser: `http://localhost:1991`
+
+Default login:
+- Username: `admin`
+- Password: `password` (⚠️ Change after first login!)
+
+### Manual Installation
+
+#### 1. Database Setup
+
+Install MySQL Server from https://dev.mysql.com/downloads/
+
 ```bash
+# Import database schema
+mysql -u root -p < database/schema.sql
+
+# Import seed data
+mysql -u root -p siswa_connect < database/seed.sql
+```
+
+#### 2. Backend Server
+
+```bash
+cd server
 npm install
-# or
-yarn install
-```
-
-3. **Configure environment variables**
-```bash
 cp .env.example .env
-```
-Edit `.env` file with your configuration:
-```env
-REACT_APP_API_URL=http://localhost:3001/api
-REACT_APP_APP_NAME=Laporan Kelas Kosong
-REACT_APP_VERSION=2.0.0
+# Edit .env with your MySQL credentials
+npm run build
+npm start
 ```
 
-4. **Start development server**
+#### 3. Frontend Client
+
 ```bash
+# Root directory
+npm install
+cp .env.example .env
+# Edit .env with API URL (default: http://localhost:1991/api)
+npm run dev
+```
+
+### Network Deployment
+
+For multi-user access on LAN:
+
+1. Get server IP: `ipconfig` (Windows) or `ifconfig` (Linux)
+2. Configure firewall: `netsh advfirewall firewall add rule name="SiswaConnect" dir=in action=allow protocol=TCP localport=1991`
+3. Update `server/.env`: `CLIENT_URL=http://192.168.1.100:1991`
+4. Access from clients: `http://192.168.1.100:1991`
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment guide.
 npm run dev
 # or
 yarn dev
