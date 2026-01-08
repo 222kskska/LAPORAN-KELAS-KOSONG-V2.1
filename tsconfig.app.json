@@ -26,6 +26,8 @@
   "include": [
     "*.ts",
     "*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     "components/**/*.ts",
     "components/**/*.tsx",
     "services/**/*.ts",

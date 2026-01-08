@@ -16,6 +16,7 @@ const TeacherLeaveForm: React.FC<TeacherLeaveFormProps> = ({ teacher, onClose, o
   const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState<TeacherLeaveFormData>({
+    guruId: teacher.id,
     tanggalMulai: '',
     tanggalSelesai: '',
     jenisIzin: LeaveType.SAKIT,

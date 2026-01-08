@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { Teacher, Report, FormData, AdminUser, ClassRoom, TeacherLeave, TeacherLeaveFormData } from '../types';
+import { Teacher, Report, FormData, AdminUser, ClassRoom, TeacherLeave, TeacherLeaveFormData } from '../../types';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:1991/api';
@@ -350,7 +350,7 @@ export const apiService = {
         alasan: formData.alasan,
         nomor_surat: formData.nomorSurat || null,
         file_surat_base64,
-        assignments: formData.assignments.map(a => ({
+        assignments: formData.assignments.map((a: any) => ({
           kelas_id: null, // Will be looked up by server if needed
           nama_kelas: a.namaKelas,
           jam_pelajaran: a.jamPelajaran,
