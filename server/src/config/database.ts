@@ -1,49 +1,40 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { DatabaseFactory, DatabaseType } from './database-factory';
+import { MySQLAdapter } from './mysql-adapter';
 
 dotenv.config();
 
-// Database configuration
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'siswa_connect',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0
-};
+// Get database type from environment
+const dbType = (process.env.DB_TYPE as DatabaseType) || DatabaseType.SQLITE;
 
-// Create connection pool
-export const pool = mysql.createPool(dbConfig);
+// Create database adapter using factory
+const dbAdapter = DatabaseFactory.create(dbType);
+
+// Export adapter instance for direct use
+export { dbAdapter };
+
+// Backward compatibility: Export pool for MySQL (will be null for SQLite)
+// This is for existing code that uses pool.getConnection() directly
+export const pool = dbType === DatabaseType.MYSQL 
+  ? (dbAdapter as MySQLAdapter).getPool() 
+  : null;
 
 // Test database connection
 export async function testConnection(): Promise<boolean> {
-  try {
-    const connection = await pool.getConnection();
-    console.log('✅ Database connected successfully');
-    console.log(`📊 Database: ${dbConfig.database}`);
-    console.log(`🔗 Host: ${dbConfig.host}:${dbConfig.port}`);
-    connection.release();
-    return true;
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
-    return false;
-  }
+  return await dbAdapter.connect();
 }
 
 // Helper function to execute queries with error handling
+// This maintains the same interface as before
 export async function query<T = any>(sql: string, params?: any[]): Promise<T> {
-  try {
-    const [results] = await pool.execute(sql, params);
-    return results as T;
-  } catch (error) {
-    console.error('Query error:', error);
-    throw error;
-  }
+  return await dbAdapter.query<T>(sql, params);
 }
 
-export default pool;
+// Helper function for execute operations
+export async function execute(sql: string, params?: any[]): Promise<any> {
+  return await dbAdapter.execute(sql, params);
+}
+
+// Export the adapter for advanced usage
+export default dbAdapter;
