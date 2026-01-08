@@ -46,7 +46,14 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => {
+      const result = reader.result;
+      if (result && typeof result === 'string') {
+        resolve(result);
+      } else {
+        reject(new Error('Failed to read file as base64'));
+      }
+    };
     reader.onerror = (error) => reject(error);
   });
 };

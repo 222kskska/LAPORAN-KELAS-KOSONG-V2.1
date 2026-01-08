@@ -23,6 +23,13 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- 1. USERS DATA
 -- Password for all users: "password"
 -- Hash: $2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+-- 
+-- ⚠️ SECURITY WARNING:
+-- These are DEVELOPMENT/TESTING credentials only!
+-- For production:
+-- 1. Generate unique passwords for each user
+-- 2. Force password change on first login
+-- 3. Never commit production credentials to version control
 -- ============================================================
 
 INSERT INTO users (id, username, password_hash, role, name, nip, mapel, is_active) VALUES

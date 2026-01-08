@@ -1,7 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET is not defined in environment variables!');
+  console.error('Please set JWT_SECRET in your .env file.');
+  process.exit(1);
+}
 
 export interface AuthUser {
   id: number;
