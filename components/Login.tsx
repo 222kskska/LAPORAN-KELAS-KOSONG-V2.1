@@ -6,9 +6,10 @@ import { AdminUser } from '../types';
 interface LoginProps {
   onLoginSuccess: (user: AdminUser) => void;
   onBack: () => void;
+  loginType?: 'ADMIN' | 'TEACHER';
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack, loginType = 'ADMIN' }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +29,17 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
     try {
       const user = await mockService.login(username, password);
       if (user) {
+        // Validate role matches loginType
+        if (loginType === 'TEACHER' && user.role !== 'TEACHER') {
+          setError('Akses ini khusus untuk guru. Gunakan Akses Admin untuk role lainnya.');
+          setLoading(false);
+          return;
+        }
+        if (loginType === 'ADMIN' && user.role === 'TEACHER') {
+          setError('Akses ini khusus untuk admin/operator. Gunakan Akses Guru untuk login sebagai guru.');
+          setLoading(false);
+          return;
+        }
         onLoginSuccess(user);
       } else {
         setError('Username atau password salah');
@@ -42,7 +54,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4 relative overflow-hidden">
        {/* Background Decoration */}
-       <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]"></div>
+       <div className={`absolute top-[-20%] left-[-10%] w-[500px] h-[500px] ${loginType === 'TEACHER' ? 'bg-green-500/5' : 'bg-primary/5'} rounded-full blur-[100px]`}></div>
 
       <div className="bg-white w-full max-w-md rounded-3xl shadow-float overflow-hidden animate-fade-in relative z-10">
         
@@ -56,12 +68,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
           </button>
           
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-primary/10 p-2 rounded-xl">
-               <School className="w-6 h-6 text-primary" />
+            <div className={`${loginType === 'TEACHER' ? 'bg-green-500/10' : 'bg-primary/10'} p-2 rounded-xl`}>
+               <School className={`w-6 h-6 ${loginType === 'TEACHER' ? 'text-green-600' : 'text-primary'}`} />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800">Login Admin</h2>
+            <h2 className="text-2xl font-bold text-slate-800">Login {loginType === 'TEACHER' ? 'Guru' : 'Admin'}</h2>
           </div>
-          <p className="text-slate-500 text-sm pl-1">Masuk untuk mengelola sistem sekolah.</p>
+          <p className="text-slate-500 text-sm pl-1">
+            {loginType === 'TEACHER' ? 'Masuk untuk mengajukan izin dan penugasan.' : 'Masuk untuk mengelola sistem sekolah.'}
+          </p>
         </div>
 
         {/* Form */}
@@ -113,7 +127,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-white py-4 rounded-xl font-bold shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:bg-primary-dark transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-4"
+              className={`w-full ${loginType === 'TEACHER' ? 'bg-green-500 hover:bg-green-600 shadow-green-500/30 hover:shadow-green-500/50' : 'bg-primary hover:bg-primary-dark shadow-primary/30 hover:shadow-primary/50'} text-white py-4 rounded-xl font-bold shadow-lg transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-4`}
             >
               {loading ? 'Sedang Memproses...' : 'Masuk Dashboard'}
             </button>
@@ -122,7 +136,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onBack }) => {
         
         <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
           <p className="text-xs text-slate-400">
-            Kredensial Demo: <span className="font-mono text-slate-600">admin / password</span>
+            Kredensial Demo {loginType === 'TEACHER' ? 'Guru' : 'Admin'}: <span className="font-mono text-slate-600">{loginType === 'TEACHER' ? 'guru1 / password' : 'admin / password'}</span>
           </p>
         </div>
       </div>

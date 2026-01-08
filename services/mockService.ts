@@ -1,4 +1,4 @@
-import { Teacher, Report, FormData, AdminUser, UserRole, ClassRoom } from '../types';
+import { Teacher, Report, FormData, AdminUser, UserRole, ClassRoom, TeacherLeave, TeacherLeaveFormData, LeaveType, ClassAssignment } from '../types';
 
 // Broadcast Channel for Real-time simulation across tabs
 // Menggunakan try-catch untuk kompatibilitas browser lama/environment tertentu
@@ -14,7 +14,8 @@ const STORAGE_KEYS = {
   CLASSES: 'SC_DB_CLASSES',
   TEACHERS: 'SC_DB_TEACHERS',
   REPORTS: 'SC_DB_REPORTS',
-  USERS: 'SC_DB_USERS'
+  USERS: 'SC_DB_USERS',
+  TEACHER_LEAVES: 'SC_DB_TEACHER_LEAVES'
 };
 
 // --- SEED DATA (Data Awal jika Database Kosong) ---
@@ -68,6 +69,8 @@ const SEED_ADMIN_USERS: AdminUser[] = [
   { id: 'u1', username: 'superadmin', password: 'Samarinda88!', role: UserRole.SUPER_ADMIN, name: 'Super Administrator' },
   { id: 'u2', username: 'admin', password: 'password', role: UserRole.ADMIN, name: 'Admin Sekolah' },
   { id: 'u3', username: 'operator', password: 'password', role: UserRole.OPERATOR, name: 'Operator Piket' },
+  { id: 'u4', username: 'guru1', password: 'password', role: UserRole.TEACHER, name: 'Bpk. Joko Widodo', nip: '19610621 198503 1 001', mapel: 'Matematika' },
+  { id: 'u5', username: 'guru2', password: 'password', role: UserRole.TEACHER, name: 'Ibu Sri Mulyani', nip: '19620826 198703 2 005', mapel: 'Ekonomi' },
 ];
 
 // --- HELPER FUNCTIONS ---
@@ -108,6 +111,7 @@ let CLASSES: ClassRoom[] = loadFromStorage(STORAGE_KEYS.CLASSES, SEED_CLASSES);
 let TEACHERS: Teacher[] = loadFromStorage(STORAGE_KEYS.TEACHERS, SEED_TEACHERS);
 let REPORTS: Report[] = loadFromStorage(STORAGE_KEYS.REPORTS, SEED_REPORTS);
 let ADMIN_USERS: AdminUser[] = loadFromStorage(STORAGE_KEYS.USERS, SEED_ADMIN_USERS);
+let TEACHER_LEAVES: TeacherLeave[] = loadFromStorage(STORAGE_KEYS.TEACHER_LEAVES, []);
 
 export const mockService = {
   // --- Auth & User Management ---
@@ -346,6 +350,125 @@ export const mockService = {
       REPORTS[idx].status = status;
       saveToStorage(STORAGE_KEYS.REPORTS, REPORTS);
       return true;
+    }
+    return false;
+  },
+
+  // --- Teacher Leave Management ---
+
+  submitTeacherLeave: async (guruId: string, guruData: AdminUser, formData: TeacherLeaveFormData): Promise<boolean> => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    let fileSuratString: string | undefined = undefined;
+    
+    // Convert file to Base64 for persistence
+    if (formData.fileSurat) {
+      try {
+        fileSuratString = await fileToBase64(formData.fileSurat);
+      } catch (e) {
+        console.error("Gagal convert file surat", e);
+      }
+    }
+
+    const leaveId = Math.random().toString(36).substr(2, 9);
+    
+    // Create assignments with proper IDs
+    const assignments: ClassAssignment[] = formData.assignments.map(a => ({
+      id: Math.random().toString(36).substr(2, 9),
+      leaveId: leaveId,
+      kelasId: a.kelasId,
+      namaKelas: a.namaKelas,
+      jamPelajaran: a.jamPelajaran,
+      mataPelajaran: a.mataPelajaran,
+      guruPengganti: a.guruPengganti,
+      guruPenggantiId: a.guruPenggantiId,
+      tugas: a.tugas,
+      statusPenyampaian: 'belum'
+    }));
+
+    const newLeave: TeacherLeave = {
+      id: leaveId,
+      guruId: guruId,
+      namaGuru: guruData.name,
+      nip: guruData.nip,
+      mapel: guruData.mapel,
+      tanggalMulai: formData.tanggalMulai,
+      tanggalSelesai: formData.tanggalSelesai,
+      jenisIzin: formData.jenisIzin,
+      alasan: formData.alasan,
+      nomorSurat: formData.nomorSurat,
+      fileSurat: fileSuratString,
+      status: 'pending',
+      tanggalDiajukan: new Date().toISOString(),
+      assignments: assignments
+    };
+
+    TEACHER_LEAVES.unshift(newLeave);
+    saveToStorage(STORAGE_KEYS.TEACHER_LEAVES, TEACHER_LEAVES);
+    return true;
+  },
+
+  getTeacherLeaves: async (): Promise<TeacherLeave[]> => {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    TEACHER_LEAVES = loadFromStorage(STORAGE_KEYS.TEACHER_LEAVES, []);
+    return [...TEACHER_LEAVES];
+  },
+
+  getTeacherLeavesByGuruId: async (guruId: string): Promise<TeacherLeave[]> => {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    TEACHER_LEAVES = loadFromStorage(STORAGE_KEYS.TEACHER_LEAVES, []);
+    return TEACHER_LEAVES.filter(l => l.guruId === guruId);
+  },
+
+  approveTeacherLeave: async (id: string, approvedBy: string, approvedById: string, catatan?: string): Promise<boolean> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const idx = TEACHER_LEAVES.findIndex(l => l.id === id);
+    if (idx !== -1) {
+      TEACHER_LEAVES[idx].status = 'approved';
+      TEACHER_LEAVES[idx].disetujuiOleh = approvedBy;
+      TEACHER_LEAVES[idx].disetujuiOlehId = approvedById;
+      TEACHER_LEAVES[idx].tanggalDisetujui = new Date().toISOString();
+      TEACHER_LEAVES[idx].catatan = catatan;
+      saveToStorage(STORAGE_KEYS.TEACHER_LEAVES, TEACHER_LEAVES);
+      return true;
+    }
+    return false;
+  },
+
+  rejectTeacherLeave: async (id: string, rejectedBy: string, rejectedById: string, catatan: string): Promise<boolean> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const idx = TEACHER_LEAVES.findIndex(l => l.id === id);
+    if (idx !== -1) {
+      TEACHER_LEAVES[idx].status = 'rejected';
+      TEACHER_LEAVES[idx].disetujuiOleh = rejectedBy;
+      TEACHER_LEAVES[idx].disetujuiOlehId = rejectedById;
+      TEACHER_LEAVES[idx].tanggalDisetujui = new Date().toISOString();
+      TEACHER_LEAVES[idx].catatan = catatan;
+      saveToStorage(STORAGE_KEYS.TEACHER_LEAVES, TEACHER_LEAVES);
+      return true;
+    }
+    return false;
+  },
+
+  updateAssignmentNotification: async (leaveId: string, assignmentId: string, notifiedBy: string): Promise<boolean> => {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const leaveIdx = TEACHER_LEAVES.findIndex(l => l.id === leaveId);
+    if (leaveIdx !== -1) {
+      const assignmentIdx = TEACHER_LEAVES[leaveIdx].assignments.findIndex(a => a.id === assignmentId);
+      if (assignmentIdx !== -1) {
+        TEACHER_LEAVES[leaveIdx].assignments[assignmentIdx].statusPenyampaian = 'sudah';
+        TEACHER_LEAVES[leaveIdx].assignments[assignmentIdx].waktuDisampaikan = new Date().toISOString();
+        TEACHER_LEAVES[leaveIdx].assignments[assignmentIdx].disampaikanOleh = notifiedBy;
+        
+        // Update leave status to notified if all assignments are notified
+        const allNotified = TEACHER_LEAVES[leaveIdx].assignments.every(a => a.statusPenyampaian === 'sudah');
+        if (allNotified) {
+          TEACHER_LEAVES[leaveIdx].status = 'notified';
+        }
+        
+        saveToStorage(STORAGE_KEYS.TEACHER_LEAVES, TEACHER_LEAVES);
+        return true;
+      }
     }
     return false;
   }

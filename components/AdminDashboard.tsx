@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Search, Download, ExternalLink, Calendar, Clock, LayoutDashboard, Users, LogOut, AlertOctagon, UserCog, School, ArrowUpDown, Bell, Check, Menu, X, ChevronRight, Trash2, CheckCircle, XCircle, MoreVertical, FileSpreadsheet, Instagram } from 'lucide-react';
+import { Search, Download, ExternalLink, Calendar, Clock, LayoutDashboard, Users, LogOut, AlertOctagon, UserCog, School, ArrowUpDown, Bell, Check, Menu, X, ChevronRight, Trash2, CheckCircle, XCircle, MoreVertical, FileSpreadsheet, Instagram, ClipboardList, Eye, FileText } from 'lucide-react';
 import { mockService } from '../services/mockService';
-import { Report, AdminUser, UserRole } from '../types';
+import { Report, AdminUser, UserRole, TeacherLeave, LeaveType } from '../types';
 import AdminUserManagement from './AdminUserManagement';
 import AdminTeacherManagement from './AdminTeacherManagement';
 import AdminClassManagement from './AdminClassManagement';
@@ -17,11 +17,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const canManageUsers = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN;
   
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'teachers' | 'classes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'teachers' | 'classes' | 'leaves'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar toggle
   const [isDesktopOpen, setIsDesktopOpen] = useState(true); // Desktop sidebar toggle
   
   const [reports, setReports] = useState<Report[]>([]);
+  const [teacherLeaves, setTeacherLeaves] = useState<TeacherLeave[]>([]);
+  const [selectedLeave, setSelectedLeave] = useState<TeacherLeave | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -40,6 +42,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   useEffect(() => {
     if (activeTab === 'dashboard') {
       loadReports();
+    } else if (activeTab === 'leaves') {
+      loadTeacherLeaves();
     }
   }, [activeTab]);
 
@@ -69,6 +73,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
     setReports(data);
     setLoading(false);
     setSelectedIds([]);
+  };
+
+  const loadTeacherLeaves = async () => {
+    setLoading(true);
+    const data = await mockService.getTeacherLeaves();
+    setTeacherLeaves(data);
+    setLoading(false);
   };
 
   const deleteReport = async (id: string) => {
@@ -179,8 +190,76 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   const COLORS = ['#4361ee', '#3f37c9', '#4cc9f0', '#7209b7'];
 
+  // Teacher Leave Helper Functions
+  const handleApproveLeave = async (leaveId: string, catatan?: string) => {
+    await mockService.approveTeacherLeave(leaveId, user.name, user.id, catatan);
+    loadTeacherLeaves();
+    setSelectedLeave(null);
+  };
+
+  const handleRejectLeave = async (leaveId: string, catatan: string) => {
+    if (!catatan.trim()) {
+      alert('Catatan penolakan harus diisi');
+      return;
+    }
+    await mockService.rejectTeacherLeave(leaveId, user.name, user.id, catatan);
+    loadTeacherLeaves();
+    setSelectedLeave(null);
+  };
+
+  const handleNotifyClass = async (leaveId: string, assignmentId: string) => {
+    await mockService.updateAssignmentNotification(leaveId, assignmentId, user.name);
+    loadTeacherLeaves();
+    // Refresh selected leave if it's open
+    if (selectedLeave && selectedLeave.id === leaveId) {
+      const updated = await mockService.getTeacherLeaves();
+      const updatedLeave = updated.find(l => l.id === leaveId);
+      if (updatedLeave) {
+        setSelectedLeave(updatedLeave);
+      }
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const badges = {
+      pending: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Clock, label: 'Menunggu' },
+      approved: { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, label: 'Disetujui' },
+      rejected: { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, label: 'Ditolak' },
+      notified: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: CheckCircle, label: 'Tersampaikan' },
+    };
+    const badge = badges[status as keyof typeof badges] || badges.pending;
+    const Icon = badge.icon;
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badge.color}`}>
+        <Icon className="w-3.5 h-3.5" />
+        {badge.label}
+      </span>
+    );
+  };
+
+  const getJenisIzinLabel = (jenis: LeaveType) => {
+    const labels = {
+      [LeaveType.SAKIT]: 'Sakit',
+      [LeaveType.IZIN]: 'Izin',
+      [LeaveType.DINAS]: 'Dinas',
+      [LeaveType.CUTI]: 'Cuti',
+      [LeaveType.LAINNYA]: 'Lainnya',
+    };
+    return labels[jenis] || jenis;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const pendingLeavesCount = teacherLeaves.filter(l => l.status === 'pending').length;
+
   // Navigation Item Component
-  const NavItem = ({ id, label, icon: Icon }: any) => (
+  const NavItem = ({ id, label, icon: Icon, badge }: any) => (
     <button
       onClick={() => {
         setActiveTab(id);
@@ -194,7 +273,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
     >
       <Icon className="w-5 h-5 flex-shrink-0" />
       <span className="whitespace-nowrap">{label}</span>
-      {activeTab === id && <ChevronRight className="w-4 h-4 ml-auto opacity-50" />}
+      {badge && badge > 0 && (
+        <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-bold ${
+          activeTab === id ? 'bg-white/20 text-white' : 'bg-red-500 text-white'
+        }`}>
+          {badge}
+        </span>
+      )}
+      {activeTab === id && !badge && <ChevronRight className="w-4 h-4 ml-auto opacity-50" />}
     </button>
   );
 
@@ -250,6 +336,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Menu Utama</p>
              <div className="space-y-1">
                 <NavItem id="dashboard" label="Laporan" icon={LayoutDashboard} />
+                <NavItem id="leaves" label="Izin Guru" icon={ClipboardList} badge={pendingLeavesCount > 0 ? pendingLeavesCount : undefined} />
                 {canManageUsers && (
                   <>
                     <NavItem id="teachers" label="Data Guru" icon={UserCog} />
@@ -296,6 +383,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
             </button>
             <h1 className="text-xl font-bold text-slate-800 hidden md:block">
               {activeTab === 'dashboard' && 'Dashboard Laporan'}
+              {activeTab === 'leaves' && 'Izin Guru'}
               {activeTab === 'teachers' && 'Manajemen Guru'}
               {activeTab === 'classes' && 'Manajemen Kelas'}
               {activeTab === 'users' && 'Manajemen Pengguna'}
@@ -378,6 +466,85 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                 <AdminTeacherManagement />
               ) : activeTab === 'classes' && canManageUsers ? (
                 <AdminClassManagement />
+              ) : activeTab === 'leaves' ? (
+                /* TEACHER LEAVES VIEW */
+                <div className="space-y-6 animate-fade-in">
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div className="p-6 border-b border-slate-200">
+                      <h2 className="text-xl font-bold text-slate-800">Pengajuan Izin Guru</h2>
+                      <p className="text-sm text-slate-600 mt-1">
+                        Kelola pengajuan izin dari guru dan tandai penyampaian ke kelas
+                      </p>
+                    </div>
+
+                    {loading ? (
+                      <div className="p-12 text-center">
+                        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-slate-500">Memuat data...</p>
+                      </div>
+                    ) : teacherLeaves.length === 0 ? (
+                      <div className="p-12 text-center">
+                        <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500">Belum ada pengajuan izin guru</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-200">
+                        {teacherLeaves.map((leave) => (
+                          <div key={leave.id} className="p-6 hover:bg-slate-50 transition-colors">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-lg font-bold text-slate-800">{leave.namaGuru}</h3>
+                                  {getStatusBadge(leave.status)}
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-sm text-slate-600">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                    <span>{formatDate(leave.tanggalMulai)} - {formatDate(leave.tanggalSelesai)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-slate-400" />
+                                    <span>{getJenisIzinLabel(leave.jenisIzin)}</span>
+                                  </div>
+                                  {leave.nip && (
+                                    <div>
+                                      <span className="text-slate-500">NIP:</span>
+                                      <span className="ml-1 font-medium">{leave.nip}</span>
+                                    </div>
+                                  )}
+                                  {leave.mapel && (
+                                    <div>
+                                      <span className="text-slate-500">Mapel:</span>
+                                      <span className="ml-1 font-medium">{leave.mapel}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <p className="mt-2 text-sm text-slate-700">
+                                  <span className="font-semibold">Alasan:</span> {leave.alasan}
+                                </p>
+                                {leave.nomorSurat && (
+                                  <p className="mt-1 text-sm text-slate-600">
+                                    <span className="font-semibold">No. Surat:</span> {leave.nomorSurat}
+                                  </p>
+                                )}
+                                <p className="mt-2 text-xs text-slate-500">
+                                  {leave.assignments.length} kelas terpengaruh
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => setSelectedLeave(leave)}
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              >
+                                <Eye className="w-4 h-4" />
+                                Detail
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               ) : (
                 /* DASHBOARD VIEW */
                 <div className="space-y-6 animate-fade-in">
@@ -643,6 +810,188 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
            </div>
         </div>
       </div>
+
+      {/* Teacher Leave Detail Modal */}
+      {selectedLeave && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-4xl my-8 animate-fade-in">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">Detail Izin Guru</h2>
+                <p className="text-sm text-slate-600 mt-1">{selectedLeave.namaGuru}</p>
+              </div>
+              <button onClick={() => setSelectedLeave(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Status & Actions */}
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-slate-700">Status:</span>
+                  {getStatusBadge(selectedLeave.status)}
+                </div>
+                {selectedLeave.status === 'pending' && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const catatan = prompt('Catatan persetujuan (opsional):');
+                        if (catatan !== null) {
+                          handleApproveLeave(selectedLeave.id, catatan || undefined);
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Setujui
+                    </button>
+                    <button
+                      onClick={() => {
+                        const catatan = prompt('Alasan penolakan (wajib):');
+                        if (catatan) {
+                          handleRejectLeave(selectedLeave.id, catatan);
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Tolak
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Leave Info */}
+              <div>
+                <h3 className="font-bold text-slate-800 mb-3">Informasi Izin</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-slate-500">Nama Guru:</span>
+                    <p className="font-semibold text-slate-800 mt-1">{selectedLeave.namaGuru}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">NIP:</span>
+                    <p className="font-semibold text-slate-800 mt-1">{selectedLeave.nip || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Mata Pelajaran:</span>
+                    <p className="font-semibold text-slate-800 mt-1">{selectedLeave.mapel || '-'}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Jenis Izin:</span>
+                    <p className="font-semibold text-slate-800 mt-1">{getJenisIzinLabel(selectedLeave.jenisIzin)}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Periode:</span>
+                    <p className="font-semibold text-slate-800 mt-1">
+                      {formatDate(selectedLeave.tanggalMulai)} - {formatDate(selectedLeave.tanggalSelesai)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Tanggal Diajukan:</span>
+                    <p className="font-semibold text-slate-800 mt-1">{formatDate(selectedLeave.tanggalDiajukan)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-500">Alasan:</span>
+                    <p className="font-semibold text-slate-800 mt-1">{selectedLeave.alasan}</p>
+                  </div>
+                  {selectedLeave.nomorSurat && (
+                    <div>
+                      <span className="text-slate-500">Nomor Surat:</span>
+                      <p className="font-semibold text-slate-800 mt-1">{selectedLeave.nomorSurat}</p>
+                    </div>
+                  )}
+                  {selectedLeave.fileSurat && (
+                    <div>
+                      <span className="text-slate-500">File Surat:</span>
+                      <a href={selectedLeave.fileSurat} target="_blank" rel="noreferrer" className="text-primary hover:underline mt-1 block">
+                        Lihat Dokumen
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Assignments */}
+              <div>
+                <h3 className="font-bold text-slate-800 mb-3">Penugasan Kelas ({selectedLeave.assignments.length})</h3>
+                <div className="space-y-3">
+                  {selectedLeave.assignments.map((assignment, index) => (
+                    <div key={assignment.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                        <h4 className="font-semibold text-slate-700">Penugasan {index + 1} - Kelas {assignment.namaKelas}</h4>
+                        {selectedLeave.status === 'approved' && assignment.statusPenyampaian === 'belum' ? (
+                          <button
+                            onClick={() => handleNotifyClass(selectedLeave.id, assignment.id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Sampaikan ke Kelas
+                          </button>
+                        ) : assignment.statusPenyampaian === 'sudah' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Sudah Disampaikan
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-slate-500">Jam Pelajaran:</span>
+                          <span className="ml-2 font-semibold text-slate-800">{assignment.jamPelajaran}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Mata Pelajaran:</span>
+                          <span className="ml-2 font-semibold text-slate-800">{assignment.mataPelajaran}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-slate-500">Guru Pengganti:</span>
+                          <span className="ml-2 font-semibold text-slate-800">{assignment.guruPengganti}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-slate-500">Tugas:</span>
+                          <p className="text-slate-800 mt-1">{assignment.tugas}</p>
+                        </div>
+                        {assignment.waktuDisampaikan && (
+                          <div className="col-span-2 text-xs text-slate-500 mt-1">
+                            Disampaikan pada: {formatDate(assignment.waktuDisampaikan)} oleh {assignment.disampaikanOleh}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Admin Notes */}
+              {selectedLeave.catatan && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h3 className="font-bold text-slate-800 mb-2">Catatan Admin</h3>
+                  <p className="text-sm text-slate-700">{selectedLeave.catatan}</p>
+                  {selectedLeave.disetujuiOleh && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      Oleh: {selectedLeave.disetujuiOleh} pada {selectedLeave.tanggalDisetujui ? formatDate(selectedLeave.tanggalDisetujui) : '-'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-slate-200">
+              <button
+                onClick={() => setSelectedLeave(null)}
+                className="w-full px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
