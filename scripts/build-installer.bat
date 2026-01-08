@@ -60,6 +60,12 @@ echo.
 
 REM Build Electron installer
 echo [5/5] Building Electron installer...
+call tsc -p electron/tsconfig.json
+IF %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Electron TypeScript compilation failed
+    pause
+    exit /b 1
+)
 call npm run dist
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: Electron build failed
