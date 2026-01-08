@@ -13,7 +13,7 @@
     "preview": "vite preview --port 1991",
     "dev:electron": "concurrently -k \"npm run dev\" \"npm run electron:start\"",
     "electron:start": "wait-on tcp:1991 && electron .",
-    "build:electron": "tsc -b && vite build && tsc -p electron/tsconfig.json && electron-builder",
+    "build:electron": "tsc -b && vite build && npm run build:server && tsc -p electron/tsconfig.json && electron-builder",
     "start:server": "node server.js",
     "install:all": "npm install && cd server && npm install",
     "dev:server": "cd server && npm run dev",
@@ -88,8 +88,7 @@
       }
     ],
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
@@ -99,9 +98,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "SiswaConnect",
-      "runAfterFinish": true,
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico"
+      "runAfterFinish": true
     }
   }
 }
