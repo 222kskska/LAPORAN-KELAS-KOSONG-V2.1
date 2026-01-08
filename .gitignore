@@ -96,3 +96,17 @@ public
 dist
 dist-electron
 release
+
+# Server specific
+server/node_modules/
+server/dist/
+server/.env
+server/logs/
+server/*.log
+
+# Database backups
+database/backups/
+*.sql.backup
+
+# Local environment
+.env.local

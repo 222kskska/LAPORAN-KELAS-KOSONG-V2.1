@@ -98,6 +98,7 @@ export interface TeacherLeave {
 }
 
 export interface TeacherLeaveFormData {
+  guruId: string;
   tanggalMulai: string;
   tanggalSelesai: string;
   jenisIzin: LeaveType;

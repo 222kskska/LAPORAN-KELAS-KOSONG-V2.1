@@ -12,7 +12,7 @@ import {
   Search,
   X
 } from 'lucide-react';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 import { Teacher, ClassRoom, FormData } from '../types';
 
 interface StudentFormProps {
@@ -39,7 +39,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
   // Load teachers and classes on mount
   useEffect(() => {
     const loadData = async () => {
-      const teachersData = await mockService.getTeachers();
+      const teachersData = await apiService.getTeachers();
       setTeachers(teachersData);
       setFilteredTeachers(teachersData);
     };
@@ -55,7 +55,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
   useEffect(() => {
     const detectClass = async () => {
       if (kodeKelas.length >= 4) {
-        const classes = await mockService.getClasses();
+        const classes = await apiService.getClasses();
         const found = classes.find(c => c.kode === kodeKelas);
         setDetectedClass(found || null);
       } else {
@@ -117,7 +117,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onBack }) => {
     };
 
     try {
-      const success = await mockService.submitReport(formData);
+      const success = await apiService.submitReport(formData);
       if (success) {
         setShowSuccessModal(true);
       }

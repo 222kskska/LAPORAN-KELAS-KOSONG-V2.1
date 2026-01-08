@@ -1,11 +1,11 @@
 {
   "name": "siswa-connect",
   "private": true,
-  "version": "1.0.0",
+  "version": "3.0.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "author": "ArifWbo",
-  "description": "Aplikasi Pelaporan KBM SiswaConnect - Port 1991",
+  "description": "Aplikasi Pelaporan KBM SiswaConnect Multi-User - Port 1991",
   "scripts": {
     "dev": "vite --port 1991",
     "build": "tsc -b && vite build",
@@ -14,9 +14,15 @@
     "dev:electron": "concurrently -k \"npm run dev\" \"npm run electron:start\"",
     "electron:start": "wait-on tcp:1991 && electron .",
     "build:electron": "tsc -b && vite build && tsc -p electron/tsconfig.json && electron-builder",
-    "start:server": "node server.js"
+    "start:server": "node server.js",
+    "install:all": "npm install && cd server && npm install",
+    "dev:server": "cd server && npm run dev",
+    "build:server": "cd server && npm run build",
+    "start:backend": "cd server && npm start",
+    "build:all": "npm run build && npm run build:server"
   },
   "dependencies": {
+    "axios": "^1.13.2",
     "express": "^4.18.2",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",

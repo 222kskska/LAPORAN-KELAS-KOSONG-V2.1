@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Teacher } from '../types';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 import { Trash2, Plus, Pencil, Upload, X, Save, FileText, FileSpreadsheet, Download, Search } from 'lucide-react';
 import { read, utils, writeFile } from 'xlsx';
 
@@ -28,7 +28,7 @@ const AdminTeacherManagement: React.FC = () => {
 
   const loadTeachers = async () => {
     setLoading(true);
-    const data = await mockService.getTeachers();
+    const data = await apiService.getTeachers();
     setTeachers(data);
     setLoading(false);
     setSelectedIds([]);
@@ -57,7 +57,7 @@ const AdminTeacherManagement: React.FC = () => {
   const handleBulkDelete = async () => {
     if (window.confirm(`Yakin ingin menghapus ${selectedIds.length} guru terpilih?`)) {
       setLoading(true);
-      await mockService.deleteTeachersBulk(selectedIds);
+      await apiService.deleteTeachersBulk(selectedIds);
       loadTeachers();
     }
   };
@@ -65,9 +65,9 @@ const AdminTeacherManagement: React.FC = () => {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingTeacher) {
-      await mockService.updateTeacher({ ...editingTeacher, ...formData });
+      await apiService.updateTeacher({ ...editingTeacher, ...formData });
     } else {
-      await mockService.addTeacher(formData);
+      await apiService.addTeacher(formData);
     }
     closeModals();
     loadTeachers();
@@ -174,7 +174,7 @@ const AdminTeacherManagement: React.FC = () => {
   };
 
   const processBulkData = async (data: Omit<Teacher, 'id'>[]) => {
-    await mockService.addTeachersBulk(data);
+    await apiService.addTeachersBulk(data);
     closeModals();
     loadTeachers();
     alert(`Berhasil menambahkan ${data.length} guru.`);
@@ -192,7 +192,7 @@ const AdminTeacherManagement: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Hapus data guru ini?')) {
-      await mockService.deleteTeacher(id);
+      await apiService.deleteTeacher(id);
       loadTeachers();
     }
   };

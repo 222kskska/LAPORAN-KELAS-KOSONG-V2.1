@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 import { ClassRoom, Report } from '../types';
 import { Trash2, Plus, Pencil, Upload, X, Save, FileText, School, FileSpreadsheet, Download, QrCode, CheckSquare, Square, History, Calendar, User, Clock, CheckCircle, XCircle, AlertCircle, ArrowUpDown } from 'lucide-react';
 import { read, utils, writeFile } from 'xlsx';
@@ -32,7 +32,7 @@ const AdminClassManagement: React.FC = () => {
 
   const loadClasses = async () => {
     setLoading(true);
-    const data = await mockService.getClasses();
+    const data = await apiService.getClasses();
     setClasses(data);
     setLoading(false);
     setSelectedIds([]); // Reset selection on reload
@@ -55,7 +55,7 @@ const AdminClassManagement: React.FC = () => {
   const handleBulkDelete = async () => {
     if (window.confirm(`Yakin ingin menghapus ${selectedIds.length} kelas terpilih?`)) {
       setLoading(true);
-      await mockService.deleteClassesBulk(selectedIds);
+      await apiService.deleteClassesBulk(selectedIds);
       loadClasses();
     }
   };
@@ -63,9 +63,9 @@ const AdminClassManagement: React.FC = () => {
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingClass) {
-      await mockService.updateClass(editingClass.id, formData);
+      await apiService.updateClass(editingClass.id, formData);
     } else {
-      await mockService.addClass(formData);
+      await apiService.addClass(formData);
     }
     closeModals();
     loadClasses();
@@ -74,7 +74,7 @@ const AdminClassManagement: React.FC = () => {
   // --- History Logic ---
   const openHistory = async (cls: ClassRoom) => {
     setSelectedClassHistory(cls);
-    const allReports = await mockService.getReports();
+    const allReports = await apiService.getReports();
     const filtered = allReports.filter(r => r.kelas === cls.nama);
     
     setHistoryReports(filtered);
@@ -99,7 +99,7 @@ const AdminClassManagement: React.FC = () => {
     });
 
     if (newClasses.length > 0) {
-      await mockService.addClassesBulk(newClasses);
+      await apiService.addClassesBulk(newClasses);
       closeModals();
       loadClasses();
       alert(`Berhasil memproses ${newClasses.length} data kelas.`);
@@ -140,7 +140,7 @@ const AdminClassManagement: React.FC = () => {
         if (skippedCount > 0) {
           alert(`Ditemukan ${newClasses.length} data valid. ${skippedCount} baris dilewati.`);
         }
-        await mockService.addClassesBulk(newClasses);
+        await apiService.addClassesBulk(newClasses);
         closeModals();
         loadClasses();
         alert(`Berhasil menambahkan ${newClasses.length} kelas.`);
@@ -171,7 +171,7 @@ const AdminClassManagement: React.FC = () => {
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Hapus kelas ${name}?`)) {
-      await mockService.deleteClass(id);
+      await apiService.deleteClass(id);
       loadClasses();
     }
   };

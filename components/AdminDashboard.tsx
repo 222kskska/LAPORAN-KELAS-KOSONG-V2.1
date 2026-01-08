@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Search, Download, ExternalLink, Calendar, Clock, LayoutDashboard, Users, LogOut, AlertOctagon, UserCog, School, ArrowUpDown, Bell, Check, Menu, X, ChevronRight, Trash2, CheckCircle, XCircle, MoreVertical, FileSpreadsheet, Instagram, ClipboardList, Eye, FileText } from 'lucide-react';
-import { mockService } from '../services/mockService';
+import { apiService } from '../src/services/apiService';
 import { Report, AdminUser, UserRole, TeacherLeave, LeaveType } from '../types';
 import AdminUserManagement from './AdminUserManagement';
 import AdminTeacherManagement from './AdminTeacherManagement';
@@ -49,9 +49,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   // Real-time listener
   useEffect(() => {
-    const unsubscribe = mockService.subscribeToNewReports((newReport) => {
-      setNotifications(prev => [newReport, ...prev]);
-      setReports(prev => [newReport, ...prev]);
+    const unsubscribe = apiService.subscribeToNewReports((newReports) => {
+      // Get only new reports
+      const newItems = newReports.filter(r => !reports.some(existing => existing.id === r.id));
+      if (newItems.length > 0) {
+        setNotifications(prev => [...newItems, ...prev]);
+        setReports(newReports);
+      }
     });
 
     const handleClickOutside = (event: MouseEvent) => {
@@ -69,7 +73,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   const loadReports = async () => {
     setLoading(true);
-    const data = await mockService.getReports();
+    const data = await apiService.getReports();
     setReports(data);
     setLoading(false);
     setSelectedIds([]);
@@ -77,21 +81,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   const loadTeacherLeaves = async () => {
     setLoading(true);
-    const data = await mockService.getTeacherLeaves();
+    const data = await apiService.getTeacherLeaves();
     setTeacherLeaves(data);
     setLoading(false);
   };
 
   const deleteReport = async (id: string) => {
     if (window.confirm('Apakah anda yakin ingin menghapus laporan ini?')) {
-      await mockService.deleteReport(id);
+      await apiService.deleteReport(id);
       loadReports();
     }
   };
 
   const handleBulkDelete = async () => {
     if (window.confirm(`Yakin ingin menghapus ${selectedIds.length} laporan terpilih?`)) {
-      await mockService.deleteReportsBulk(selectedIds);
+      await apiService.deleteReportsBulk(selectedIds);
       loadReports();
     }
   };
@@ -111,7 +115,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   };
 
   const updateStatus = async (id: string, status: 'verified' | 'rejected' | 'pending') => {
-    await mockService.updateReportStatus(id, status);
+    await apiService.updateReportStatus(id, status);
     loadReports();
   };
 
@@ -192,7 +196,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   // Teacher Leave Helper Functions
   const handleApproveLeave = async (leaveId: string, catatan?: string) => {
-    await mockService.approveTeacherLeave(leaveId, user.name, user.id, catatan);
+    await apiService.approveTeacherLeave(leaveId, catatan);
     loadTeacherLeaves();
     setSelectedLeave(null);
   };
@@ -202,17 +206,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
       alert('Catatan penolakan harus diisi');
       return;
     }
-    await mockService.rejectTeacherLeave(leaveId, user.name, user.id, catatan);
+    await apiService.rejectTeacherLeave(leaveId, catatan);
     loadTeacherLeaves();
     setSelectedLeave(null);
   };
 
   const handleNotifyClass = async (leaveId: string, assignmentId: string) => {
-    await mockService.updateAssignmentNotification(leaveId, assignmentId, user.name);
+    await apiService.updateAssignmentNotification(assignmentId, user.name);
     loadTeacherLeaves();
     // Refresh selected leave if it's open
     if (selectedLeave && selectedLeave.id === leaveId) {
-      const updated = await mockService.getTeacherLeaves();
+      const updated = await apiService.getTeacherLeaves();
       const updatedLeave = updated.find(l => l.id === leaveId);
       if (updatedLeave) {
         setSelectedLeave(updatedLeave);
