@@ -1,11 +1,12 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
-import path from 'path';
-import { spawn, ChildProcess } from 'child_process';
-import Store from 'electron-store';
-import { fileURLToPath } from 'url';
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const path = require('path');
+const { spawn } = require('child_process');
+const Store = require('electron-store');
+import type { ChildProcess } from 'child_process';
+import type { BrowserWindow as BrowserWindowType, IpcMainEvent } from 'electron';
+import type ElectronStore from 'electron-store';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname is available in CommonJS, no need to derive it from import.meta.url
 
 interface AppConfig {
   installMode: 'standalone' | 'network';
@@ -20,9 +21,9 @@ interface AppConfig {
   };
 }
 
-const store = new Store<{ config?: AppConfig }>();
+const store = new Store({ name: 'siswaconnect-config' }) as ElectronStore<{ config?: AppConfig }>;
 let serverProcess: ChildProcess | null = null;
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindowType | null = null;
 
 // First-run setup wizard
 async function showSetupWizard(): Promise<AppConfig> {
@@ -45,7 +46,7 @@ async function showSetupWizard(): Promise<AppConfig> {
 
     setupWindow.loadFile(setupPath);
 
-    ipcMain.once('setup-complete', (event, config: AppConfig) => {
+    ipcMain.once('setup-complete', (event: IpcMainEvent, config: AppConfig) => {
       setupWindow.close();
       resolve(config);
     });
@@ -73,10 +74,8 @@ async function startServer(config: AppConfig): Promise<boolean> {
       ? path.join(process.resourcesPath, 'server', 'dist', 'server.js')
       : path.join(__dirname, '../server/dist/server.js');
     
-    // Determine Node.js path
-    const nodePath = isPackaged
-      ? path.join(process.resourcesPath, 'node', 'node.exe')
-      : process.execPath;
+    // Determine Node.js path - always use Electron's built-in node
+    const nodePath = process.execPath;
     
     console.log('Server path:', serverPath);
     console.log('Node path:', nodePath);
@@ -106,14 +105,15 @@ async function startServer(config: AppConfig): Promise<boolean> {
     });
     
     // Spawn server process
-    serverProcess = spawn(nodePath, [serverPath], { 
+    const spawnedProcess = spawn(nodePath, [serverPath], { 
       env,
       stdio: ['ignore', 'pipe', 'pipe']
     });
+    serverProcess = spawnedProcess;
     
     let serverReady = false;
     
-    serverProcess.stdout?.on('data', (data) => {
+    spawnedProcess.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
       console.log(`[Server] ${output}`);
       
@@ -123,16 +123,16 @@ async function startServer(config: AppConfig): Promise<boolean> {
       }
     });
     
-    serverProcess.stderr?.on('data', (data) => {
+    spawnedProcess.stderr?.on('data', (data: Buffer) => {
       console.error(`[Server Error] ${data}`);
     });
     
-    serverProcess.on('error', (error) => {
+    spawnedProcess.on('error', (error: Error) => {
       console.error('Failed to start server:', error);
       reject(error);
     });
     
-    serverProcess.on('exit', (code, signal) => {
+    spawnedProcess.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
       console.log(`Server process exited with code ${code} and signal ${signal}`);
       if (!serverReady) {
         reject(new Error(`Server exited with code ${code}`));
