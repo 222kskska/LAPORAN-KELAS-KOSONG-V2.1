@@ -1,11 +1,8 @@
-import { app, shell } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import express from 'express';
+const { app, shell } = require('electron');
+const path = require('path');
+const express = require('express');
 
-// Untuk ES Module, kita perlu membuat __dirname sendiri
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname is available in CommonJS, no need for fileURLToPath
 
 const PORT = 1991; // Port custom seperti Dapodik
 let serverInstance: any = null;
