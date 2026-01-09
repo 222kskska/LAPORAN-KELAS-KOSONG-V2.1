@@ -1,11 +1,16 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
-import path from 'path';
-import { spawn, ChildProcess } from 'child_process';
-import Store from 'electron-store';
-import { fileURLToPath } from 'url';
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const path = require('path');
+const { spawn } = require('child_process');
+const Store = require('electron-store');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// TypeScript type imports
+import type { ChildProcess } from 'child_process';
+import type { BrowserWindow as BrowserWindowType, IpcMainEvent } from 'electron';
+
+// Extend process type to include Electron's resourcesPath
+interface ElectronProcess extends NodeJS.Process {
+  resourcesPath: string;
+}
 
 interface AppConfig {
   installMode: 'standalone' | 'network';
@@ -20,9 +25,9 @@ interface AppConfig {
   };
 }
 
-const store = new Store<{ config?: AppConfig }>();
+const store = new Store();
 let serverProcess: ChildProcess | null = null;
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindowType | null = null;
 
 // First-run setup wizard
 async function showSetupWizard(): Promise<AppConfig> {
@@ -40,12 +45,12 @@ async function showSetupWizard(): Promise<AppConfig> {
     });
 
     const setupPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'electron', 'setup-wizard.html')
+      ? path.join((process as ElectronProcess).resourcesPath, 'electron', 'setup-wizard.html')
       : path.join(__dirname, 'setup-wizard.html');
 
     setupWindow.loadFile(setupPath);
 
-    ipcMain.once('setup-complete', (event, config: AppConfig) => {
+    ipcMain.once('setup-complete', (_event: IpcMainEvent, config: AppConfig) => {
       setupWindow.close();
       resolve(config);
     });
@@ -70,13 +75,11 @@ async function startServer(config: AppConfig): Promise<boolean> {
     
     // Determine server path
     const serverPath = isPackaged
-      ? path.join(process.resourcesPath, 'server', 'dist', 'server.js')
+      ? path.join((process as ElectronProcess).resourcesPath, 'server', 'dist', 'server.js')
       : path.join(__dirname, '../server/dist/server.js');
     
     // Determine Node.js path
-    const nodePath = isPackaged
-      ? path.join(process.resourcesPath, 'node', 'node.exe')
-      : process.execPath;
+    const nodePath = process.execPath; // Use Electron's built-in Node.js
     
     console.log('Server path:', serverPath);
     console.log('Node path:', nodePath);
@@ -113,31 +116,33 @@ async function startServer(config: AppConfig): Promise<boolean> {
     
     let serverReady = false;
     
-    serverProcess.stdout?.on('data', (data) => {
-      const output = data.toString();
-      console.log(`[Server] ${output}`);
+    if (serverProcess) {
+      serverProcess.stdout?.on('data', (data) => {
+        const output = data.toString();
+        console.log(`[Server] ${output}`);
+        
+        if (output.includes('Server running') || output.includes('SISWACONNECT SERVER STARTED')) {
+          serverReady = true;
+          resolve(true);
+        }
+      });
       
-      if (output.includes('Server running') || output.includes('SISWACONNECT SERVER STARTED')) {
-        serverReady = true;
-        resolve(true);
-      }
-    });
-    
-    serverProcess.stderr?.on('data', (data) => {
-      console.error(`[Server Error] ${data}`);
-    });
-    
-    serverProcess.on('error', (error) => {
-      console.error('Failed to start server:', error);
-      reject(error);
-    });
-    
-    serverProcess.on('exit', (code, signal) => {
-      console.log(`Server process exited with code ${code} and signal ${signal}`);
-      if (!serverReady) {
-        reject(new Error(`Server exited with code ${code}`));
-      }
-    });
+      serverProcess.stderr?.on('data', (data) => {
+        console.error(`[Server Error] ${data}`);
+      });
+      
+      serverProcess.on('error', (error) => {
+        console.error('Failed to start server:', error);
+        reject(error);
+      });
+      
+      serverProcess.on('exit', (code, signal) => {
+        console.log(`Server process exited with code ${code} and signal ${signal}`);
+        if (!serverReady) {
+          reject(new Error(`Server exited with code ${code}`));
+        }
+      });
+    }
     
     // Timeout after 30 seconds
     setTimeout(() => {

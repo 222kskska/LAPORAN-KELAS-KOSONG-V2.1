@@ -1,14 +1,16 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
     "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
     "outDir": "../dist-electron",
     "rootDir": ".",
-    "sourceMap": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["main.ts", "main-hybrid.ts", "preload.ts"]
+  "include": ["main-hybrid.ts", "preload.ts"]
 }
