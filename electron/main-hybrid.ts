@@ -3,7 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const Store = require('electron-store');
 import type { ChildProcess } from 'child_process';
-import type { BrowserWindow as BrowserWindowType } from 'electron';
+import type { BrowserWindow as BrowserWindowType, IpcMainEvent } from 'electron';
 
 // __dirname is available in CommonJS, no need for fileURLToPath
 
@@ -20,7 +20,7 @@ interface AppConfig {
   };
 }
 
-const store: any = new Store();
+const store = new Store() as { get(key: string): any; set(key: string, value: any): void; delete(key: string): void };
 let serverProcess: ChildProcess | null = null;
 let mainWindow: BrowserWindowType | null = null;
 
@@ -45,7 +45,7 @@ async function showSetupWizard(): Promise<AppConfig> {
 
     setupWindow.loadFile(setupPath);
 
-    ipcMain.once('setup-complete', (_event: any, config: AppConfig) => {
+    ipcMain.once('setup-complete', (_event: IpcMainEvent, config: AppConfig) => {
       setupWindow.close();
       resolve(config);
     });
@@ -117,7 +117,7 @@ async function startServer(config: AppConfig): Promise<boolean> {
     const proc = serverProcess; // Create a non-null reference
     let serverReady = false;
     
-    proc.stdout?.on('data', (data: any) => {
+    proc.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
       console.log(`[Server] ${output}`);
       
@@ -127,16 +127,16 @@ async function startServer(config: AppConfig): Promise<boolean> {
       }
     });
     
-    proc.stderr?.on('data', (data: any) => {
+    proc.stderr?.on('data', (data: Buffer) => {
       console.error(`[Server Error] ${data}`);
     });
     
-    proc.on('error', (error: any) => {
+    proc.on('error', (error: Error) => {
       console.error('Failed to start server:', error);
       reject(error);
     });
     
-    proc.on('exit', (code: any, signal: any) => {
+    proc.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
       console.log(`Server process exited with code ${code} and signal ${signal}`);
       if (!serverReady) {
         reject(new Error(`Server exited with code ${code}`));
