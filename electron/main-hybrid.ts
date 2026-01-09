@@ -2,7 +2,15 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const Store = require('electron-store');
+
+// TypeScript type imports
 import type { ChildProcess } from 'child_process';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
+
+// Extend process type to include Electron's resourcesPath
+interface ElectronProcess extends NodeJS.Process {
+  resourcesPath: string;
+}
 
 interface AppConfig {
   installMode: 'standalone' | 'network';
@@ -19,7 +27,7 @@ interface AppConfig {
 
 const store = new Store();
 let serverProcess: ChildProcess | null = null;
-let mainWindow: any = null;
+let mainWindow: BrowserWindowType | null = null;
 
 // First-run setup wizard
 async function showSetupWizard(): Promise<AppConfig> {
@@ -37,7 +45,7 @@ async function showSetupWizard(): Promise<AppConfig> {
     });
 
     const setupPath = app.isPackaged
-      ? path.join((process as any).resourcesPath, 'electron', 'setup-wizard.html')
+      ? path.join((process as ElectronProcess).resourcesPath, 'electron', 'setup-wizard.html')
       : path.join(__dirname, 'setup-wizard.html');
 
     setupWindow.loadFile(setupPath);
@@ -67,7 +75,7 @@ async function startServer(config: AppConfig): Promise<boolean> {
     
     // Determine server path
     const serverPath = isPackaged
-      ? path.join((process as any).resourcesPath, 'server', 'dist', 'server.js')
+      ? path.join((process as ElectronProcess).resourcesPath, 'server', 'dist', 'server.js')
       : path.join(__dirname, '../server/dist/server.js');
     
     // Determine Node.js path
