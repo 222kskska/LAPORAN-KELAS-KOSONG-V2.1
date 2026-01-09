@@ -2,7 +2,6 @@
   "name": "siswa-connect",
   "private": true,
   "version": "3.0.0",
-  "type": "module",
   "main": "dist-electron/main-hybrid.js",
   "author": "ArifWbo",
   "description": "Aplikasi Pelaporan KBM SiswaConnect Multi-User - Port 1991",
