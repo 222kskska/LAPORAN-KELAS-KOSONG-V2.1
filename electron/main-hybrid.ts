@@ -18,7 +18,15 @@ interface AppConfig {
   };
 }
 
-const store = new Store({ name: 'config' });
+interface StoreSchema {
+  config?: AppConfig;
+}
+
+const store = new Store({ name: 'config' }) as any as {
+  get(key: 'config'): AppConfig | undefined;
+  set(key: 'config', value: AppConfig): void;
+  delete(key: 'config'): void;
+};
 let serverProcess: ChildProcess | null = null;
 let mainWindow: BrowserWindowType | null = null;
 
