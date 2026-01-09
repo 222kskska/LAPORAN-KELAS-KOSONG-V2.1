@@ -1,11 +1,9 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
-import path from 'path';
-import { spawn, ChildProcess } from 'child_process';
-import Store from 'electron-store';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const path = require('path');
+const { spawn } = require('child_process');
+const Store = require('electron-store');
+import type { ChildProcess } from 'child_process';
+import type { BrowserWindow as BrowserWindowType, IpcMainEvent } from 'electron';
 
 interface AppConfig {
   installMode: 'standalone' | 'network';
@@ -20,9 +18,17 @@ interface AppConfig {
   };
 }
 
-const store = new Store<{ config?: AppConfig }>();
+interface StoreSchema {
+  config?: AppConfig;
+}
+
+const store = new Store({ name: 'config' }) as any as {
+  get(key: 'config'): AppConfig | undefined;
+  set(key: 'config', value: AppConfig): void;
+  delete(key: 'config'): void;
+};
 let serverProcess: ChildProcess | null = null;
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindowType | null = null;
 
 // First-run setup wizard
 async function showSetupWizard(): Promise<AppConfig> {
@@ -45,7 +51,7 @@ async function showSetupWizard(): Promise<AppConfig> {
 
     setupWindow.loadFile(setupPath);
 
-    ipcMain.once('setup-complete', (event, config: AppConfig) => {
+    ipcMain.once('setup-complete', (_event: IpcMainEvent, config: AppConfig) => {
       setupWindow.close();
       resolve(config);
     });
@@ -73,10 +79,8 @@ async function startServer(config: AppConfig): Promise<boolean> {
       ? path.join(process.resourcesPath, 'server', 'dist', 'server.js')
       : path.join(__dirname, '../server/dist/server.js');
     
-    // Determine Node.js path
-    const nodePath = isPackaged
-      ? path.join(process.resourcesPath, 'node', 'node.exe')
-      : process.execPath;
+    // Use Electron's built-in Node.js instead of external node.exe
+    const nodePath = process.execPath;
     
     console.log('Server path:', serverPath);
     console.log('Node path:', nodePath);
@@ -106,14 +110,15 @@ async function startServer(config: AppConfig): Promise<boolean> {
     });
     
     // Spawn server process
-    serverProcess = spawn(nodePath, [serverPath], { 
+    const currentServerProcess = spawn(nodePath, [serverPath], { 
       env,
       stdio: ['ignore', 'pipe', 'pipe']
     });
+    serverProcess = currentServerProcess;
     
     let serverReady = false;
     
-    serverProcess.stdout?.on('data', (data) => {
+    currentServerProcess.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
       console.log(`[Server] ${output}`);
       
@@ -123,16 +128,16 @@ async function startServer(config: AppConfig): Promise<boolean> {
       }
     });
     
-    serverProcess.stderr?.on('data', (data) => {
+    currentServerProcess.stderr?.on('data', (data: Buffer) => {
       console.error(`[Server Error] ${data}`);
     });
     
-    serverProcess.on('error', (error) => {
+    currentServerProcess.on('error', (error: Error) => {
       console.error('Failed to start server:', error);
       reject(error);
     });
     
-    serverProcess.on('exit', (code, signal) => {
+    currentServerProcess.on('exit', (code: number | null, signal: string | null) => {
       console.log(`Server process exited with code ${code} and signal ${signal}`);
       if (!serverReady) {
         reject(new Error(`Server exited with code ${code}`));
