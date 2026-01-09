@@ -5,7 +5,7 @@ const Store = require('electron-store');
 
 // TypeScript type imports
 import type { ChildProcess } from 'child_process';
-import type { BrowserWindow as BrowserWindowType } from 'electron';
+import type { BrowserWindow as BrowserWindowType, IpcMainEvent } from 'electron';
 
 // Extend process type to include Electron's resourcesPath
 interface ElectronProcess extends NodeJS.Process {
@@ -50,7 +50,7 @@ async function showSetupWizard(): Promise<AppConfig> {
 
     setupWindow.loadFile(setupPath);
 
-    ipcMain.once('setup-complete', (_event: any, config: AppConfig) => {
+    ipcMain.once('setup-complete', (_event: IpcMainEvent, config: AppConfig) => {
       setupWindow.close();
       resolve(config);
     });
